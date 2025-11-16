@@ -327,10 +327,20 @@ onMounted(() => {
 // 使用一个标志来防止内部更新触发重新加载
 let isInternalUpdate = false
 
+// 监听conversationHistory变化
 watch(() => props.conversationHistory, (newVal, oldVal) => {
   // 只有在非内部更新且值真正改变时才重新加载
-  if (!isInternalUpdate && newVal && newVal.trim() && newVal !== oldVal) {
-    console.log('🔵 检测到conversationHistory变化，准备加载:', newVal.substring(0, 50))
+  if (!isInternalUpdate && newVal !== oldVal) {
+    console.log('🔵 检测到conversationHistory变化，准备加载:', newVal?.substring(0, 50))
+    loadFromConversationHistory()
+  }
+})
+
+// 监听draftPrompt(modelValue)变化
+watch(() => props.modelValue, (newVal, oldVal) => {
+  // 当draftPrompt变化且conversationHistory为空时，也要加载
+  if (!isInternalUpdate && newVal !== oldVal && newVal?.trim() && !props.conversationHistory?.trim()) {
+    console.log('🔵 检测到draftPrompt变化(无对话历史)，准备加载:', newVal.substring(0, 50))
     loadFromConversationHistory()
   }
 })
