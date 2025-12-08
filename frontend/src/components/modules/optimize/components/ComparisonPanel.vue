@@ -1,9 +1,41 @@
 <template>
-  <div class="h-full min-h-0 overflow-hidden flex flex-col">
+  <div class="h-full min-h-0 flex flex-col overflow-hidden">
     <!-- 上部：两个对话窗口 -->
-    <div class="flex-1 min-h-0 grid grid-cols-2 gap-4 mb-4">
-    <!-- 左侧：优化前 -->
-    <div class="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
+    <div
+      :class="[
+        'flex-1 min-h-0',
+        navigationStore.isMobile
+          ? 'flex flex-col gap-2'
+          : 'grid grid-cols-2 gap-4 h-full'
+      ]"
+    >
+      <!-- 左侧：优化前 -->
+      <div
+        :class="[
+          'flex flex-col min-h-0',
+          navigationStore.isMobile
+            ? (activeMobilePane === 'left' ? 'flex-1' : 'flex-shrink-0')
+            : 'h-full'
+        ]"
+      >
+        <div
+          v-if="navigationStore.isMobile && activeMobilePane !== 'left'"
+          @click="activeMobilePane = 'left'"
+          class="bg-white rounded-lg shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-800">优化前</h3>
+            <span class="text-xs text-gray-500">{{ (comparisonMode === 'system' ? leftMessages.length : leftUserMessages.length) || 0 }} 条对话</span>
+          </div>
+          <ChevronDown class="w-5 h-5 text-gray-500" />
+        </div>
+        <div
+          v-show="!navigationStore.isMobile || activeMobilePane === 'left'"
+          :class="[
+            'flex flex-col bg-white rounded-lg shadow-sm overflow-hidden min-h-0 h-full',
+            navigationStore.isMobile ? 'flex-1' : ''
+          ]"
+        >
       <!-- 头部 -->
       <div class="p-4 border-b border-gray-200 flex-shrink-0">
         <div class="flex justify-between items-center">
@@ -167,9 +199,35 @@
             </div>
           </div>
         </div>
+      </div>
 
-    <!-- 右侧：优化后 -->
-    <div class="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
+      <!-- 右侧：优化后 -->
+      <div
+        :class="[
+          'flex flex-col min-h-0',
+          navigationStore.isMobile
+            ? (activeMobilePane === 'right' ? 'flex-1' : 'flex-shrink-0')
+            : 'h-full'
+        ]"
+      >
+        <div
+          v-if="navigationStore.isMobile && activeMobilePane !== 'right'"
+          @click="activeMobilePane = 'right'"
+          class="bg-white rounded-lg shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors flex-shrink-0"
+        >
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-800">优化后</h3>
+            <span class="text-xs text-gray-500">{{ (comparisonMode === 'system' ? rightMessages.length : rightUserMessages.length) || 0 }} 条对话</span>
+          </div>
+          <ChevronDown class="w-5 h-5 text-gray-500" />
+        </div>
+        <div
+          v-show="!navigationStore.isMobile || activeMobilePane === 'right'"
+          :class="[
+            'flex flex-col bg-white rounded-lg shadow-sm overflow-hidden min-h-0 h-full',
+            navigationStore.isMobile ? 'flex-1' : ''
+          ]"
+        >
       <!-- 头部 -->
           <div class="p-4 border-b border-gray-200 flex-shrink-0">
             <div class="flex justify-between items-center">
@@ -333,42 +391,41 @@
               </div>
             </div>
           </div>
-    </div>
-    </div>
-    
-    <!-- 下部：输入框区域 -->
-    <div class="flex-shrink-0">
-      <!-- 用户模式：左右各自的输入框已经在上面的对话窗口内 -->
-      <!-- 系统模式：底部共用输入框 -->
-      <div v-if="comparisonMode === 'system'" class="bg-white rounded-lg shadow-md border border-gray-200 p-3">
-      <div 
-        class="relative border border-gray-300 rounded-2xl focus-within:outline-none focus-within:border-gray-300 overflow-hidden" 
-        style="height: 120px;"
-      >
-        <div class="absolute top-0 left-0 right-0" style="bottom: 48px;">
-          <textarea
-            v-model="sharedInput"
-            @keydown="handleSharedKeydown"
-            :placeholder="'Shift+Enter换行'"
-            class="w-full h-full px-2 pt-3 pb-1 border-0 outline-none resize-none disabled:opacity-50 text-base overflow-y-auto bg-transparent"
-            :disabled="isGenerating"
-            rows="1"
-          ></textarea>
-        </div>
-        
-        <div class="absolute bottom-0 left-0 right-0 h-12 flex justify-between items-center px-2 bg-transparent pointer-events-none">
-          <div class="w-8 h-8"></div>
-          
-          <button
-            @click="handleSendSystemMessage"
-            :disabled="!sharedInput.trim() || isGenerating"
-            class="w-8 h-8 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center pointer-events-auto"
-            title="同时发送到两侧"
-          >
-            <ArrowUp class="w-4 h-4" />
-          </button>
         </div>
       </div>
+    </div>
+    
+    <!-- 下部：系统模式共用输入框 -->
+    <div v-if="comparisonMode === 'system'" class="flex-shrink-0 mt-4">
+      <div class="bg-white rounded-lg shadow-md border border-gray-200 p-3">
+        <div 
+          class="relative border border-gray-300 rounded-2xl focus-within:outline-none focus-within:border-gray-300 overflow-hidden" 
+          style="height: 120px;"
+        >
+          <div class="absolute top-0 left-0 right-0" style="bottom: 48px;">
+            <textarea
+              v-model="sharedInput"
+              @keydown="handleSharedKeydown"
+              :placeholder="'Shift+Enter换行'"
+              class="w-full h-full px-2 pt-3 pb-1 border-0 outline-none resize-none disabled:opacity-50 text-base overflow-y-auto bg-transparent"
+              :disabled="isGenerating"
+              rows="1"
+            ></textarea>
+          </div>
+          
+          <div class="absolute bottom-0 left-0 right-0 h-12 flex justify-between items-center px-2 bg-transparent pointer-events-none">
+            <div class="w-8 h-8"></div>
+            
+            <button
+              @click="handleSendSystemMessage"
+              :disabled="!sharedInput.trim() || isGenerating"
+              class="w-8 h-8 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center pointer-events-auto"
+              title="同时发送到两侧"
+            >
+              <ArrowUp class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -394,14 +451,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import { MessageSquare, ArrowLeft, RefreshCw, ArrowUp, FileText } from 'lucide-vue-next'
+import { MessageSquare, ArrowLeft, RefreshCw, ArrowUp, FileText, ChevronDown } from 'lucide-vue-next'
 import { useComparison } from '../composables/useComparison'
 import { marked } from 'marked'
 import SystemPromptModal from './SystemPromptModal.vue'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useNavigationStore } from '@/stores/navigationStore'
 
 const comparison = useComparison()
 const settingsStore = useSettingsStore()
+const navigationStore = useNavigationStore()
 
 // 对话容器引用
 const leftChatContainer = ref<HTMLElement | null>(null)
@@ -409,6 +468,7 @@ const rightChatContainer = ref<HTMLElement | null>(null)
 
 // 本地状态
 const comparisonMode = ref<'system' | 'user'>('user')
+const activeMobilePane = ref<'left' | 'right'>('left')
 const sharedInput = ref('')
 const leftInput = ref('')
 const rightInput = ref('')
@@ -828,6 +888,25 @@ watch(() => comparison.state.isLeftGenerating, () => {
 
 watch(() => comparison.state.isRightGenerating, () => {
   scrollToBottom(rightChatContainer.value)
+})
+
+// 移动端自动切换至正在生成的窗口
+watch(() => comparison.state.isLeftGenerating, (val) => {
+  if (navigationStore.isMobile && val) {
+    activeMobilePane.value = 'left'
+  }
+})
+
+watch(() => comparison.state.isRightGenerating, (val) => {
+  if (navigationStore.isMobile && val) {
+    activeMobilePane.value = 'right'
+  }
+})
+
+watch(() => comparisonMode.value, () => {
+  if (navigationStore.isMobile) {
+    activeMobilePane.value = 'left'
+  }
 })
 
 // 监听消息内容变化（流式输出更新）

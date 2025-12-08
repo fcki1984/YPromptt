@@ -337,13 +337,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  // 从本地存储和云端加载设置
-  const loadSettings = async () => {
-    // 1. 先尝试从云端加载（会话期间只加载一次）
-    const cloudConfigLoaded = await loadFromCloud()
-    
-    // 2. 如果云端没有加载成功，使用localStorage（降级方案）
-    if (!cloudConfigLoaded) {
+  const hydrateFromLocalStorage = () => {
       const savedProviders = localStorage.getItem('yprompt_providers')
       const savedProvider = localStorage.getItem('yprompt_selected_provider')
       const savedModel = localStorage.getItem('yprompt_selected_model')
@@ -409,6 +403,16 @@ export const useSettingsStore = defineStore('settings', () => {
       // 恢复选择
       if (savedProvider) selectedProvider.value = savedProvider
       if (savedModel) selectedModel.value = savedModel
+  }
+
+  // 从本地存储和云端加载设置
+  const loadSettings = async () => {
+    // 1. 先尝试从云端加载（会话期间只加载一次）
+    await loadFromCloud()
+    
+    // 2. 如果当前store尚未被填充（例如刷新后只剩session标记），从localStorage恢复
+    if (providers.value.length === 0) {
+      hydrateFromLocalStorage()
     }
 
     // 3. 验证并恢复保存的提供商和模型选择

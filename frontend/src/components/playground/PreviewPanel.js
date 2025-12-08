@@ -16,135 +16,139 @@ export default {
   template: `
     <div ref="mainContainer" class="flex flex-col h-full bg-[#f8f9fa] select-none outline-none" tabindex="0" @keydown="handleKeydown">
       <!-- Header with Tabs & Actions -->
-      <div class="h-14 border-b border-[#e5e7eb] flex items-center justify-between px-4 bg-white sticky top-0 z-10 flex-shrink-0">
-        
-        <!-- Left: Tabs -->
-        <div class="flex items-center gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-200">
-           <button 
-             @click="activeTab = 'preview'"
-             :class="['px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2', 
-               activeTab === 'preview' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50']"
-           >
-             <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-             Preview
-           </button>
-           <button 
-             @click="activeTab = 'code'"
-             :class="['px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2', 
-               activeTab === 'code' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50']"
-           >
-             <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
-             Code
-           </button>
-        </div>
-
-        <!-- Center: Context Aware Actions -->
-        <div class="flex items-center gap-4">
-            <!-- Device Toggles (HTML) -->
-            <div v-if="activeTab === 'preview' && artifact && artifact.type === 'html'" class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                <button @click="deviceMode = 'desktop'" :class="['p-1.5 rounded transition-colors', deviceMode === 'desktop' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']" title="Desktop (100%)">
-                    <i data-lucide="monitor" class="w-4 h-4"></i>
-                </button>
-                <button @click="deviceMode = 'tablet'" :class="['p-1.5 rounded transition-colors', deviceMode === 'tablet' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']" title="Tablet (768px)">
-                    <i data-lucide="tablet" class="w-4 h-4"></i>
-                </button>
-                <button @click="deviceMode = 'mobile'" :class="['p-1.5 rounded transition-colors', deviceMode === 'mobile' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']" title="Mobile (375px)">
-                    <i data-lucide="smartphone" class="w-4 h-4"></i>
-                </button>
-            </div>
-
-            <!-- Mermaid Theme Toggle -->
-            <div v-if="activeTab === 'preview' && artifact && artifact.type === 'mermaid'" class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-               <button 
-                 @click="toggleMermaidLook('default')" 
-                 :class="['px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5', mermaidLook === 'default' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:bg-gray-200']"
-               >
-                 <i data-lucide="layout" class="w-3.5 h-3.5"></i>
-                 Standard
-               </button>
-               <button 
-                 @click="toggleMermaidLook('handDrawn')" 
-                 :class="['px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5', mermaidLook === 'handDrawn' ? 'bg-white shadow text-purple-700' : 'text-gray-600 hover:bg-gray-200']"
-               >
-                 <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
-                 Hand-Drawn
-               </button>
-            </div>
-
-            <!-- SVG Editor Actions -->
-            <div v-if="artifact && artifact.type === 'svg' && activeTab === 'preview'" class="flex items-center gap-1.5">
-                <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
-                   <button @click="undo" :disabled="historyIndex <= 0" class="p-1.5 hover:bg-gray-100 rounded text-gray-600 disabled:opacity-30" title="Undo">
-                      <i data-lucide="undo-2" class="w-4 h-4"></i>
-                   </button>
-                   <button @click="redo" :disabled="historyIndex >= history.length - 1" class="p-1.5 hover:bg-gray-100 rounded text-gray-600 disabled:opacity-30" title="Redo">
-                      <i data-lucide="redo-2" class="w-4 h-4"></i>
-                   </button>
-                </div>
-                <button @click="addText" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Text"><i data-lucide="type" class="w-4 h-4"></i></button>
-                <button @click="addRect" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Rectangle"><i data-lucide="square" class="w-4 h-4"></i></button>
-                <button @click="addCircle" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Circle"><i data-lucide="circle" class="w-4 h-4"></i></button>
-                <div class="h-4 w-px bg-gray-200 mx-0.5"></div>
-                <button @click="addLine" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Line"><i data-lucide="minus" class="w-4 h-4" style="transform: rotate(-45deg)"></i></button>
-                <button @click="addArrow" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Arrow"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
-                
-                <div class="h-4 w-px bg-gray-200 mx-1"></div>
-                
-                <button 
-                  @click="toggleEditMode"
-                  :class="['px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 border', 
-                     isEditing ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50']"
-                >
-                   <i :data-lucide="isEditing ? 'edit-3' : 'mouse-pointer'" class="w-3.5 h-3.5"></i>
-                   {{ isEditing ? 'Edit' : 'Select' }}
-                </button>
-            </div>
-        </div>
-
-        <!-- Right: Global Actions -->
-        <div v-if="artifact" class="flex items-center gap-2 ml-4">
-            
-            <!-- Toggle Console -->
-            <button 
-               @click="isConsoleOpen = !isConsoleOpen"
-               :class="['p-2 rounded-md transition-colors relative border', isConsoleOpen ? 'bg-gray-100 text-gray-900 border-gray-300' : 'text-gray-500 border-transparent hover:text-gray-800 hover:bg-gray-100']"
-               title="Toggle Debug Console"
+      <div class="border-b border-[#e5e7eb] px-3 py-2 bg-white sticky top-0 z-10 flex-shrink-0">
+        <div class="flex items-center gap-2 overflow-x-auto flex-nowrap hide-scrollbar w-full py-1">
+          <div class="flex items-center gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-200 flex-shrink-0">
+            <button
+              aria-label="Preview"
+              @click="activeTab = 'preview'"
+              :class="['px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 flex items-center gap-1.5',
+                activeTab === 'preview' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50']"
             >
-               <i data-lucide="terminal-square" class="w-4 h-4"></i>
-               <!-- Error Indicator Dot -->
-               <span v-if="consoleErrorCount > 0" class="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white">{{ consoleErrorCount > 9 ? '!' : consoleErrorCount }}</span>
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              <span class="hidden md:inline">Preview</span>
             </button>
+            <button
+              aria-label="Code"
+              @click="activeTab = 'code'"
+              :class="['px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 flex items-center gap-1.5',
+                activeTab === 'code' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50']"
+            >
+              <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+              <span class="hidden md:inline">Code</span>
+            </button>
+          </div>
 
+          <div
+            v-if="activeTab === 'preview' && artifact && artifact.type === 'html'"
+            class="hidden md:flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200 flex-shrink-0"
+          >
+            <button
+              @click="deviceMode = 'desktop'"
+              :class="['p-1.5 rounded transition-colors', deviceMode === 'desktop' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']"
+              title="Desktop (100%)"
+            >
+              <i data-lucide="monitor" class="w-4 h-4"></i>
+            </button>
+            <button
+              @click="deviceMode = 'tablet'"
+              :class="['p-1.5 rounded transition-colors', deviceMode === 'tablet' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']"
+              title="Tablet (768px)"
+            >
+              <i data-lucide="tablet" class="w-4 h-4"></i>
+            </button>
+            <button
+              @click="deviceMode = 'mobile'"
+              :class="['p-1.5 rounded transition-colors', deviceMode === 'mobile' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600']"
+              title="Mobile (375px)"
+            >
+              <i data-lucide="smartphone" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div
+            v-if="activeTab === 'preview' && artifact && artifact.type === 'mermaid'"
+            class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200 flex-shrink-0"
+          >
+            <button
+              @click="toggleMermaidLook('default')"
+              aria-label="Mermaid Standard Theme"
+              :class="['px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5', mermaidLook === 'default' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:bg-gray-200']"
+            >
+              <i data-lucide="layout" class="w-3.5 h-3.5"></i>
+              <span class="hidden lg:inline">Standard</span>
+            </button>
+            <button
+              @click="toggleMermaidLook('handDrawn')"
+              aria-label="Mermaid Hand Drawn Theme"
+              :class="['px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5', mermaidLook === 'handDrawn' ? 'bg-white shadow text-purple-700' : 'text-gray-600 hover:bg-gray-200']"
+            >
+              <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+              <span class="hidden lg:inline">Hand-Drawn</span>
+            </button>
+          </div>
+
+          <div v-if="artifact && artifact.type === 'svg' && activeTab === 'preview'" class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
+              <button @click="undo" :disabled="historyIndex <= 0" class="p-1.5 hover:bg-gray-100 rounded text-gray-600 disabled:opacity-30" title="Undo">
+                <i data-lucide="undo-2" class="w-4 h-4"></i>
+              </button>
+              <button @click="redo" :disabled="historyIndex >= history.length - 1" class="p-1.5 hover:bg-gray-100 rounded text-gray-600 disabled:opacity-30" title="Redo">
+                <i data-lucide="redo-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <button @click="addText" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Text"><i data-lucide="type" class="w-4 h-4"></i></button>
+            <button @click="addRect" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Rectangle"><i data-lucide="square" class="w-4 h-4"></i></button>
+            <button @click="addCircle" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Circle"><i data-lucide="circle" class="w-4 h-4"></i></button>
+            <div class="h-4 w-px bg-gray-200 mx-0.5"></div>
+            <button @click="addLine" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Line"><i data-lucide="minus" class="w-4 h-4" style="transform: rotate(-45deg)"></i></button>
+            <button @click="addArrow" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Arrow"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+            <div class="h-4 w-px bg-gray-200 mx-1"></div>
+            <button
+              aria-label="Toggle Select/Edit Mode"
+              @click="toggleEditMode"
+              :class="['px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 border',
+                isEditing ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50']"
+            >
+              <i :data-lucide="isEditing ? 'edit-3' : 'mouse-pointer'" class="w-3.5 h-3.5"></i>
+              <span class="hidden lg:inline">{{ isEditing ? 'Edit' : 'Select' }}</span>
+            </button>
+          </div>
+
+          <div v-if="artifact" class="flex items-center gap-2 flex-shrink-0">
+            <button
+              @click="isConsoleOpen = !isConsoleOpen"
+              :class="['p-2 rounded-md transition-colors relative border', isConsoleOpen ? 'bg-gray-100 text-gray-900 border-gray-300' : 'text-gray-500 border-transparent hover:text-gray-800 hover:bg-gray-100']"
+              title="Toggle Debug Console"
+            >
+              <i data-lucide="terminal-square" class="w-4 h-4"></i>
+              <span v-if="consoleErrorCount > 0" class="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white">{{ consoleErrorCount > 9 ? '!' : consoleErrorCount }}</span>
+            </button>
             <div class="w-px h-4 bg-gray-300 mx-1"></div>
-
-            <!-- Reload Button -->
-            <button 
-               v-if="activeTab === 'preview'"
-               @click="reloadPreview" 
-               class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" 
-               title="Reload / Reset Preview"
+            <button
+              v-if="activeTab === 'preview'"
+              @click="reloadPreview"
+              class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="Reload / Reset Preview"
             >
-               <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
             </button>
-
             <button @click="toggleFullscreen" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors" title="Toggle Fullscreen">
-               <i :data-lucide="isFullscreen ? 'minimize' : 'maximize'" class="w-4 h-4"></i>
+              <i :data-lucide="isFullscreen ? 'minimize' : 'maximize'" class="w-4 h-4"></i>
             </button>
-            
             <button @click="downloadArtifact" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors" title="Download Artifact">
-               <i data-lucide="download" class="w-4 h-4"></i>
+              <i data-lucide="download" class="w-4 h-4"></i>
             </button>
-
-            <button 
+            <button
               @click="copyCode"
               class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
               title="Copy Code"
             >
-               <i :data-lucide="copied ? 'check' : 'copy'" class="w-4 h-4"></i>
+              <i :data-lucide="copied ? 'check' : 'copy'" class="w-4 h-4"></i>
             </button>
+          </div>
         </div>
       </div>
-
       <!-- Content Area -->
       <div class="flex-1 overflow-hidden relative flex flex-col bg-[#e2e8f0]">
          

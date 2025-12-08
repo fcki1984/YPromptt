@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PlaygroundChatPanel from './PlaygroundChatPanel.vue'
 import PreviewPanel from './PreviewPanel.js'
 import '@/style/playground.css'
@@ -6,9 +6,11 @@ import { extractArtifact } from '@/services/playground/artifactParser'
 import { PlaygroundAIService } from '@/services/playground/aiPlaygroundService'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useNavigationStore } from '@/stores/navigationStore'
+import { ChevronDown } from 'lucide-vue-next'
 
 export default {
-  components: { PlaygroundChatPanel, PreviewPanel },
+  components: { PlaygroundChatPanel, PreviewPanel, ChevronDown },
   props: {
     systemPrompt: {
       type: String,
@@ -17,23 +19,77 @@ export default {
   },
   emits: ['open-system-prompt'],
   template: `
-    <div class="h-full flex flex-col">
-      <div class="flex flex-col xl:flex-row gap-4 flex-1 min-h-0">
-        <div class="w-full xl:w-[420px] xl:max-w-[460px] flex-shrink-0 flex flex-col min-h-[300px]">
-          <PlaygroundChatPanel
-            :messages="messages"
-            :is-streaming="isStreaming"
-            :is-stream-mode="settingsStore.streamMode"
-            :has-system-prompt="hasSystemPrompt"
-            :current-model-name="currentModelName"
-            @send="handleSend"
-            @clear="handleClear"
-            @toggle-stream="toggleStreamMode"
-            @open-system-prompt="$emit('open-system-prompt')"
-          />
+    <div class="h-full flex flex-col min-h-0">
+      <div
+        class="flex-1 min-h-0 flex flex-col xl:flex-row gap-4"
+        :class="navigationStore.isMobile ? 'gap-2' : ''"
+      >
+        <!-- 对话面板 -->
+        <div
+          :class="[
+            'flex flex-col',
+            navigationStore.isMobile
+              ? (chatExpanded ? 'flex-1 min-h-0' : 'flex-shrink-0')
+              : 'min-h-0 w-full xl:w-[420px] xl:max-w-[460px] flex-shrink-0 min-h-[300px]'
+          ]"
+        >
+          <div
+            v-if="navigationStore.isMobile && !chatExpanded"
+            @click="toggleChat"
+            class="bg-white rounded-lg shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors flex-shrink-0"
+          >
+            <h3 class="font-semibold text-gray-800">对话面板</h3>
+            <ChevronDown class="w-5 h-5 text-gray-500" />
+          </div>
+          <div
+            v-if="!navigationStore.isMobile || chatExpanded"
+            :class="[
+              'flex flex-col min-h-0',
+              navigationStore.isMobile ? 'flex-1' : 'h-full'
+            ]"
+          >
+            <PlaygroundChatPanel
+              :messages="messages"
+              :is-streaming="isStreaming"
+              :is-stream-mode="settingsStore.streamMode"
+              :has-system-prompt="hasSystemPrompt"
+              :current-model-name="currentModelName"
+              @send="handleSend"
+              @clear="handleClear"
+              @toggle-stream="toggleStreamMode"
+              @open-system-prompt="$emit('open-system-prompt')"
+            />
+          </div>
         </div>
-        <div class="flex-1 min-h-0 bg-[#f0f4f9] rounded-lg overflow-hidden">
-          <PreviewPanel :artifact="currentArtifact" />
+
+        <!-- 预览面板 -->
+        <div
+          :class="[
+            'flex flex-col',
+            navigationStore.isMobile
+              ? (previewExpanded ? 'flex-1 min-h-0' : 'flex-shrink-0')
+              : 'flex-1 min-h-0'
+          ]"
+        >
+          <div
+            v-if="navigationStore.isMobile && !previewExpanded"
+            @click="togglePreview"
+            class="bg-white rounded-lg shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors flex-shrink-0"
+          >
+            <h3 class="font-semibold text-gray-800">预览面板</h3>
+            <ChevronDown class="w-5 h-5 text-gray-500" />
+          </div>
+          <div
+            v-if="!navigationStore.isMobile || previewExpanded"
+            :class="[
+              'flex flex-col min-h-0',
+              navigationStore.isMobile ? 'flex-1' : 'h-full'
+            ]"
+          >
+            <div class="flex-1 min-h-0 bg-[#f0f4f9] rounded-lg overflow-hidden">
+              <PreviewPanel :artifact="currentArtifact" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -41,11 +97,14 @@ export default {
   setup(props) {
     const settingsStore = useSettingsStore()
     const notificationStore = useNotificationStore()
+    const navigationStore = useNavigationStore()
     const aiService = PlaygroundAIService.getInstance()
 
     const messages = ref([])
     const isStreaming = ref(false)
     const currentArtifact = ref(null)
+    const chatExpanded = ref(true)
+    const previewExpanded = ref(false)
 
     const hasSystemPrompt = computed(() => Boolean(props.systemPrompt && props.systemPrompt.trim().length))
 
@@ -153,6 +212,32 @@ export default {
       }
     }
 
+    const toggleChat = () => {
+      if (!navigationStore.isMobile) return
+      chatExpanded.value = true
+      previewExpanded.value = false
+    }
+
+    const togglePreview = () => {
+      if (!navigationStore.isMobile) return
+      chatExpanded.value = false
+      previewExpanded.value = true
+    }
+
+    watch(
+      () => navigationStore.isMobile,
+      (isMobile) => {
+        if (isMobile) {
+          chatExpanded.value = true
+          previewExpanded.value = false
+        } else {
+          chatExpanded.value = true
+          previewExpanded.value = true
+        }
+      },
+      { immediate: true }
+    )
+
     return {
       messages,
       isStreaming,
@@ -162,7 +247,12 @@ export default {
       toggleStreamMode,
       currentModelName,
       settingsStore,
-      hasSystemPrompt
+      hasSystemPrompt,
+      navigationStore,
+      chatExpanded,
+      previewExpanded,
+      toggleChat,
+      togglePreview
     }
   }
 }

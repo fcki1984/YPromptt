@@ -15,13 +15,12 @@
           <h1 class="text-xl lg:text-2xl font-bold text-gray-900">提示词操练场</h1>
           <p class="text-sm text-gray-500">实时调试提示词、网页、图表与可视化 Artifact</p>
         </div>
-        <div class="flex items-center gap-3 flex-wrap lg:flex-nowrap">
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
             <label class="text-sm font-medium text-gray-700 whitespace-nowrap">AI模型:</label>
             <select
               v-model="settingsStore.selectedProvider"
               @change="onProviderChange"
-              class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+              class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-0 flex-1 sm:flex-none"
             >
               <option value="">选择提供商</option>
               <option
@@ -36,7 +35,7 @@
               v-model="settingsStore.selectedModel"
               @change="settingsStore.saveSettings"
               :disabled="!settingsStore.selectedProvider"
-              class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 min-w-[160px]"
+              class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 min-w-0 flex-1 sm:flex-none"
             >
               <option value="">选择模型</option>
               <option
@@ -47,7 +46,6 @@
                 {{ model.name }}
               </option>
             </select>
-          </div>
         </div>
       </div>
     </div>
