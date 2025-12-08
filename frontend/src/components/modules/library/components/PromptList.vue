@@ -144,6 +144,16 @@
                     优化
                   </button>
                   <button
+                    @click.stop="handlePracticePrompt(prompt)"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-4.596 2.65A1 1 0 019 12.82V7.18a1 1 0 011.156-.998l4.596 1.032a1 1 0 01.8.977v2.977a1 1 0 01-.8.977z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4v16" />
+                    </svg>
+                    演练
+                  </button>
+                  <button
                     @click.stop="handleShowVersionHistory(prompt)"
                     class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
                   >
@@ -470,6 +480,17 @@ const handleOptimizePrompt = (prompt: Prompt) => {
   navigationStore.setCurrentModule('optimize')
   router.push(`/optimize/${prompt.id}`)
   showDetailModal.value = false
+}
+
+// 演练提示词
+const handlePracticePrompt = (prompt: Prompt) => {
+  navigationStore.setCurrentModule('playground')
+  router.push({
+    path: '/playground',
+    query: { promptId: prompt.id.toString() }
+  })
+  showDetailModal.value = false
+  showActionMenu.value = {}
 }
 
 // 复制提示词

@@ -16,6 +16,10 @@ export default {
     systemPrompt: {
       type: String,
       default: ''
+    },
+    prefillPayload: {
+      type: Object,
+      default: null
     }
   },
   emits: ['open-system-prompt'],
@@ -116,6 +120,7 @@ export default {
     const currentArtifact = ref(null)
     const chatExpanded = ref(true)
     const previewExpanded = ref(false)
+    const lastPrefillTimestamp = ref(0)
 
     const hasSystemPrompt = computed(() => Boolean(props.systemPrompt && props.systemPrompt.trim().length))
 
@@ -481,6 +486,46 @@ export default {
         }
       },
       { immediate: true }
+    )
+
+    const applyPrefillPayload = (payload) => {
+      if (!payload) return
+      const timestamp = payload.timestamp || Date.now()
+      if (timestamp === lastPrefillTimestamp.value) {
+        return
+      }
+      lastPrefillTimestamp.value = timestamp
+      const normalized = Array.isArray(payload.messages)
+        ? payload.messages
+            .map((msg, index) => {
+              const text = `${msg?.text ?? msg?.content ?? ''}`
+              if (!text.trim()) {
+                return null
+              }
+              const role = msg?.role === 'model' ? 'model' : 'user'
+              return {
+                id: `prefill-${timestamp}-${index}`,
+                role,
+                text,
+                displayText: role === 'model' ? text : undefined,
+                timestamp: Date.now() + index
+              }
+            })
+            .filter(Boolean)
+        : []
+      messages.value = normalized
+      currentArtifact.value = null
+      isStreaming.value = false
+    }
+
+    watch(
+      () => props.prefillPayload,
+      (payload) => {
+        if (!payload) {
+          return
+        }
+        applyPrefillPayload(payload)
+      }
     )
 
     return {
