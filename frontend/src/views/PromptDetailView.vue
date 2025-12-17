@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col p-2">
+  <div class="flex flex-col p-2 overflow-hidden xl:h-auto xl:overflow-visible xl:min-h-screen">
     <!-- 通知提示 -->
     <div
       v-if="showNotification"
@@ -9,52 +9,56 @@
     </div>
     
     <!-- 统一顶栏（固定在顶部） -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-4 flex-shrink-0 sticky top-2 z-10">
-      <div class="flex items-center justify-between gap-4">
+    <div class="bg-white rounded-lg shadow-sm p-4 xl:p-6 mb-4 flex-shrink-0 sticky top-2 z-10">
+      <div class="flex items-center justify-between gap-2 xl:gap-4">
         <!-- 左侧：标题 -->
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-gray-900 truncate">{{ prompt?.title || '提示词详情' }}</h1>
-            <span v-if="prompt" class="text-sm text-gray-500 font-mono flex-shrink-0">v{{ prompt.current_version || '1.0.0' }}</span>
+          <div class="flex items-center gap-2 xl:gap-3">
+            <h1 class="text-lg xl:text-2xl font-bold text-gray-900 truncate">{{ prompt?.title || '提示词详情' }}</h1>
+            <span v-if="prompt" class="text-xs xl:text-sm text-gray-500 font-mono flex-shrink-0">v{{ prompt.current_version || '1.0.0' }}</span>
           </div>
-          <p class="text-sm text-gray-500 mt-1">{{ prompt?.description || '查看和使用社区提示词' }}</p>
+          <p class="text-xs xl:text-sm text-gray-500 mt-1 line-clamp-1 xl:line-clamp-none">{{ prompt?.description || '查看和使用社区提示词' }}</p>
         </div>
         
         <!-- 右侧：操作按钮 -->
-        <div v-if="prompt" class="flex items-center gap-2 flex-shrink-0">
+        <div v-if="prompt" class="flex items-center gap-1.5 xl:gap-2 flex-shrink-0">
+          <!-- 移动端：只显示图标 -->
           <button
             @click="handleToggleLike"
             :disabled="!isLoggedIn"
             :class="prompt.is_liked 
               ? 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200' 
               : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-300'"
-            class="flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors border disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center gap-2 px-3 py-2 xl:px-4 text-sm rounded-lg transition-colors border disabled:opacity-50 disabled:cursor-not-allowed"
+            :title="prompt.is_liked ? '已点赞' : '点赞'"
           >
             <svg class="w-4 h-4" :fill="prompt.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            {{ prompt.is_liked ? '已点赞' : '点赞' }}
+            <span class="hidden xl:inline">{{ prompt.is_liked ? '已点赞' : '点赞' }}</span>
           </button>
           
           <button
             @click="handleCopyPrompt"
-            class="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="flex items-center gap-2 px-3 py-2 xl:px-4 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            title="复制"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            复制
+            <span class="hidden xl:inline">复制</span>
           </button>
           
           <button
             @click="handlePractice"
-            class="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            class="flex items-center gap-2 px-3 py-2 xl:px-4 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            title="演练"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            演练
+            <span class="hidden xl:inline">演练</span>
           </button>
         </div>
       </div>
@@ -69,25 +73,25 @@
     </div>
     
     <!-- 主内容区 -->
-    <div v-else-if="prompt" class="flex gap-4 flex-1">
+    <div v-else-if="prompt" class="flex flex-col xl:flex-row gap-4 overflow-y-auto xl:overflow-visible">
       <!-- 左侧主内容 -->
-      <div class="flex-1 bg-white rounded-lg shadow-sm min-h-full flex flex-col">
-        <div class="p-6 space-y-6 flex-1 flex flex-col">
+      <div class="flex-1 bg-white rounded-lg shadow-sm flex flex-col">
+        <div class="p-4 xl:p-6 space-y-4 xl:space-y-6">
           <!-- 基本信息 -->
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div class="flex items-center gap-2 xl:gap-3">
                 <img 
                   v-if="prompt.author_avatar" 
                   :src="prompt.author_avatar" 
                   :alt="prompt.author_name"
-                  class="w-10 h-10 rounded-full object-cover"
+                  class="w-9 h-9 xl:w-10 xl:h-10 rounded-full object-cover"
                 />
-                <div v-else class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+                <div v-else class="w-9 h-9 xl:w-10 xl:h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
                   {{ (prompt.author_name || '?')[0].toUpperCase() }}
                 </div>
                 <div>
-                  <div class="font-medium text-gray-900">{{ prompt.author_name }}</div>
+                  <div class="text-sm xl:text-base font-medium text-gray-900">{{ prompt.author_name }}</div>
                   <div class="text-xs text-gray-500">{{ formatDate(prompt.create_time) }}</div>
                 </div>
               </div>
@@ -96,16 +100,16 @@
                 :class="prompt.prompt_type === 'system' 
                   ? 'bg-purple-100 text-purple-700' 
                   : 'bg-blue-100 text-blue-700'"
-                class="px-3 py-1 text-sm font-semibold rounded-full"
+                class="px-2.5 py-1 xl:px-3 text-xs xl:text-sm font-semibold rounded-full flex-shrink-0"
               >
                 {{ prompt.prompt_type === 'system' ? '系统提示词' : '用户提示词' }}
               </span>
             </div>
             
             <!-- 统计和标签 -->
-            <div class="flex items-center justify-between gap-4 text-sm text-gray-600 pb-4 border-b">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 xl:gap-4 text-xs xl:text-sm text-gray-600 pb-3 xl:pb-4 border-b">
               <!-- 左侧：统计信息 -->
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-3 xl:gap-4">
                 <span class="flex items-center gap-1">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -128,11 +132,11 @@
               </div>
               
               <!-- 右侧：标签 -->
-              <div v-if="prompt.tags" class="flex flex-wrap gap-2 justify-end">
+              <div v-if="prompt.tags" class="flex flex-wrap gap-1.5 xl:gap-2 sm:justify-end">
                 <span 
                   v-for="tag in (prompt.tags || '').split(',').filter(Boolean)"
                   :key="tag"
-                  class="px-2.5 py-1 text-xs bg-gray-100 text-gray-700 rounded-full"
+                  class="px-2 py-0.5 xl:px-2.5 xl:py-1 text-xs bg-gray-100 text-gray-700 rounded-full"
                 >
                   {{ tag }}
                 </span>
@@ -243,27 +247,27 @@
           </section>
 
           <!-- 提示词内容 -->
-          <div class="flex-1 flex flex-col min-h-0">
-            <div class="flex items-center justify-between mb-3 flex-shrink-0">
+          <div>
+            <div class="flex items-center justify-between mb-3">
               <h3 class="text-lg font-semibold text-gray-900">提示词内容</h3>
             </div>
-            <pre class="flex-1 max-h-96 p-4 whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed overflow-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">{{ prompt.final_prompt }}</pre>
+            <pre class="max-h-64 xl:min-h-96 p-4 whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed overflow-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">{{ prompt.final_prompt }}</pre>
           </div>
           
           <!-- 评论区 -->
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">评论 ({{ comments.length }})</h3>
+            <h3 class="text-base xl:text-lg font-semibold text-gray-900 mb-3 xl:mb-4">评论 ({{ comments.length }})</h3>
             
             <!-- 发表评论 -->
             <div v-if="isLoggedIn" class="mb-4">
               <!-- 回复提示 -->
               <div v-if="replyToComment" class="mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                <span class="text-sm text-blue-700">
+                <span class="text-xs xl:text-sm text-blue-700">
                   回复 <span class="font-medium">@{{ replyToComment.user_name }}</span>
                 </span>
                 <button
                   @click="handleCancelReply"
-                  class="text-blue-600 hover:text-blue-800 text-sm"
+                  class="text-blue-600 hover:text-blue-800 text-xs xl:text-sm"
                 >
                   取消
                 </button>
@@ -286,13 +290,13 @@
               </div>
             </div>
             
-            <div v-else class="mb-4 p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-600 border border-gray-200">
+            <div v-else class="mb-4 p-3 xl:p-4 bg-gray-50 rounded-lg text-center text-xs xl:text-sm text-gray-600 border border-gray-200">
               登录后可以发表评论
             </div>
             
             <!-- 评论列表 -->
-            <div class="space-y-6">
-              <div v-if="comments.length === 0" class="text-center text-gray-500 py-8 text-sm">
+            <div class="space-y-4 xl:space-y-6">
+              <div v-if="comments.length === 0" class="text-center text-gray-500 py-6 xl:py-8 text-xs xl:text-sm">
                 暂无评论，快来发表第一条评论吧！
               </div>
               
@@ -300,37 +304,37 @@
               <div
                 v-for="commentGroup in commentTree"
                 :key="commentGroup.id"
-                class="border-b border-gray-100 pb-6 last:border-0"
+                class="border-b border-gray-100 pb-4 xl:pb-6 last:border-0"
               >
                 <!-- 主评论 -->
-                <div class="flex gap-3">
+                <div class="flex gap-2 xl:gap-3">
                   <img 
                     v-if="commentGroup.user_avatar" 
                     :src="commentGroup.user_avatar" 
                     :alt="commentGroup.user_name"
-                    class="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    class="w-8 h-8 xl:w-10 xl:h-10 rounded-full object-cover flex-shrink-0"
                   />
-                  <div v-else class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                  <div v-else class="w-8 h-8 xl:w-10 xl:h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs xl:text-sm font-semibold flex-shrink-0">
                     {{ (commentGroup.user_name || '?')[0].toUpperCase() }}
                   </div>
                   
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between mb-2">
-                      <div class="flex items-center gap-2">
-                        <span class="font-semibold text-gray-900 text-base">{{ commentGroup.user_name }}</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm xl:text-base font-semibold text-gray-900">{{ commentGroup.user_name }}</span>
                         <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">#{{ commentGroup.floor }}</span>
-                        <span class="text-sm text-gray-500">{{ formatDate(commentGroup.create_time) }}</span>
+                        <span class="text-xs xl:text-sm text-gray-500">{{ formatDate(commentGroup.create_time) }}</span>
                         <span v-if="commentGroup.is_edited" class="text-xs text-gray-400">(已编辑)</span>
                       </div>
                       
                       <!-- 操作按钮 -->
-                      <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-2 xl:gap-3">
                         <button
                           v-if="isLoggedIn"
                           @click="handleReplyComment(commentGroup)"
-                          class="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                          class="text-xs xl:text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
                         >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg class="w-3.5 h-3.5 xl:w-4 xl:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                           </svg>
                           回复
@@ -339,9 +343,9 @@
                         <button
                           v-if="canDeleteComment(commentGroup)"
                           @click="handleDeleteComment(commentGroup.id)"
-                          class="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                          class="text-xs xl:text-sm text-gray-500 hover:text-red-600 flex items-center gap-1 transition-colors"
                         >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg class="w-3.5 h-3.5 xl:w-4 xl:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                           删除
@@ -349,11 +353,11 @@
                       </div>
                     </div>
                     
-                    <p class="text-gray-800 text-base leading-relaxed mb-3">{{ commentGroup.content }}</p>
+                    <p class="text-gray-800 text-sm xl:text-base leading-relaxed mb-3">{{ commentGroup.content }}</p>
                     
                     <!-- 回复列表（递归渲染） -->
-                    <div v-if="commentGroup.replies && commentGroup.replies.length > 0" class="mt-4 space-y-4">
-                      <div class="border-l-2 border-gray-200 pl-4 space-y-4">
+                    <div v-if="commentGroup.replies && commentGroup.replies.length > 0" class="mt-3 xl:mt-4 space-y-3 xl:space-y-4">
+                      <div class="border-l-2 border-gray-200 pl-3 xl:pl-4 space-y-3 xl:space-y-4">
                         <CommentReplyItem
                           v-for="reply in commentGroup.replies"
                           :key="reply.id"
@@ -372,8 +376,8 @@
         </div>
       </div>
       
-      <!-- 右侧边栏（固定位置，不滚动） -->
-      <div class="w-80 flex-shrink-0 space-y-4 self-start sticky top-2">
+      <!-- 右侧边栏（PC端固定位置，移动端放底部） -->
+      <div class="w-full xl:w-80 flex-shrink-0 space-y-4 xl:self-start xl:sticky xl:top-2">
         <!-- 访问足迹 -->
         <div v-if="visitors.length > 0" class="bg-white rounded-lg shadow-sm p-4">
           <h3 class="text-sm font-semibold text-gray-900 mb-3">最近访问</h3>

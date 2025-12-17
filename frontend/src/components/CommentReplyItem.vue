@@ -18,8 +18,8 @@
     
     <div class="flex-1 min-w-0">
       <!-- 用户信息和操作按钮 -->
-      <div class="flex items-center justify-between mb-1">
-        <div class="flex items-center gap-2">
+      <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <span class="font-medium text-gray-900" :class="nameSize">{{ comment.user_name }}</span>
           <!-- 显示被回复的用户 -->
           <template v-if="comment.parent_user_name">
@@ -31,7 +31,7 @@
         </div>
         
         <!-- 操作按钮 -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-shrink-0">
           <button
             v-if="isLoggedIn"
             @click="$emit('reply', comment)"
