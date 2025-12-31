@@ -286,7 +286,7 @@
 
               <!-- 编辑按钮 - 图片消息不显示 -->
               <button
-                v-if="!hasImageContent(message)"
+                v-if="message.role === 'user' || !hasImageContent(message)"
                 @click="startEdit(message)"
                 class="p-1.5 text-gray-500 hover:text-green-600 transition-colors rounded-lg hover:bg-gray-100"
                 title="编辑消息"
@@ -487,7 +487,7 @@
             <!-- 发送按钮 -->
             <button
               @click="sendMessage"
-              :disabled="(!inputText.trim() && attachments.length === 0) || isGenerating || isTranslating || hasAwaitingSelection"
+              :disabled="!inputText.trim() || isGenerating || isTranslating || hasAwaitingSelection"
               class="w-8 h-8 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center pointer-events-auto"
               :title="hasAwaitingSelection ? '请先从候选图片中选择确认一张' : '发送消息'"
             >
@@ -582,9 +582,19 @@ const textareaRef = ref<HTMLTextAreaElement>()
 
 // 状态
 const inputText = ref('')
+const MAX_IMAGE_COUNT = 14
+const MAX_IMAGE_SIZE_BYTES = 7 * 1024 * 1024 // 7MB per Gemini spec
+const MAX_REQUEST_SIZE_BYTES = 20 * 1024 * 1024 // total inline_data + prompt < 20MB
+
 const attachments = ref<Array<{ id: string; name: string; size: number; file: File; preview: string; mimeType: string; data: string }>>([])
 const isGlobalDragging = ref(false)
 const draggingIndex = ref<number | null>(null)
+
+const getAttachmentsSize = () => {
+  return attachments.value.reduce((sum, att) => sum + att.size, 0)
+}
+
+const formatMB = (bytes: number) => (bytes / (1024 * 1024)).toFixed(2)
 
 // 监听 attachments 变化，通知父组件
 watch(attachments, (newAttachments) => {
@@ -1011,7 +1021,15 @@ const handleFileSelect = async (event: Event) => {
 
 // 方法：处理文件(只支持图片)
 const processFiles = async (files: File[]) => {
+  let currentCount = attachments.value.length
+  let currentSize = getAttachmentsSize()
+
   for (const file of files) {
+    if (currentCount >= MAX_IMAGE_COUNT) {
+      alert(`每个提示最多上传 ${MAX_IMAGE_COUNT} 张图片。请删除部分附件后重试。`)
+      break
+    }
+
     // 只支持图片
     if (!file.type.startsWith('image/')) {
       alert(`不支持的文件类型: ${file.name}。绘图模块只支持图片格式。`)
@@ -1025,9 +1043,14 @@ const processFiles = async (files: File[]) => {
       continue
     }
 
-    // 检查大小(最大 4MB)
-    if (file.size > 4 * 1024 * 1024) {
-      alert(`图片 ${file.name} 大小超过4MB`)
+    // 检查大小(最大 7MB)
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      alert(`图片 ${file.name} 大小为 ${(file.size / (1024 * 1024)).toFixed(2)}MB，超过 ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB 限制。`)
+      continue
+    }
+
+    if (currentSize + file.size > MAX_REQUEST_SIZE_BYTES) {
+      alert(`添加 ${file.name} 后，总上传大小将达到 ${formatMB(currentSize + file.size)}MB，超过 ${formatMB(MAX_REQUEST_SIZE_BYTES)}MB 限制。请删除部分附件或选择更小的图片。`)
       continue
     }
 
@@ -1045,6 +1068,9 @@ const processFiles = async (files: File[]) => {
       mimeType,
       data
     })
+
+    currentCount++
+    currentSize += file.size
   }
 }
 
@@ -1165,10 +1191,23 @@ const handleDrop = (event: DragEvent) => {
 // 方法：发送消息
 const sendMessage = async () => {
   if (isGenerating.value) return
-  if (!inputText.value.trim() && attachments.value.length === 0) return
   if (hasAwaitingSelection.value) return  // 如果有待选择的候选图片，不允许发送
+  if (!inputText.value.trim()) return
 
   const text = inputText.value.trim()
+
+  if (attachments.value.length > MAX_IMAGE_COUNT) {
+    alert(`每个提示最多上传 ${MAX_IMAGE_COUNT} 张图片，请删除部分附件后再发送。`)
+    return
+  }
+
+  const textBytes = text ? new TextEncoder().encode(text).length : 0
+  const totalPayload = getAttachmentsSize() + textBytes
+  if (totalPayload > MAX_REQUEST_SIZE_BYTES) {
+    alert(`文本与图片合计约 ${formatMB(totalPayload)}MB，超过 ${formatMB(MAX_REQUEST_SIZE_BYTES)}MB 请求限制。请精简内容或减少附件。`)
+    return
+  }
+
   const images = attachments.value.map(att => ({
     mimeType: att.mimeType,
     data: att.data
