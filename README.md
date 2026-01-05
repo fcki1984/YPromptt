@@ -198,5 +198,11 @@ data/ssl/
 容器启动时会自动检测并启用HTTPS。
 
 ## 许可证
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-[LICENSE](LICENSE)
+本项目采用 [CC BY-NC-SA 4.0](LICENSE) 许可证。
+
+- 禁止任何形式的商业使用
+- 允许个人学习和非商业用途
+- 衍生作品必须使用相同许可证
+- 二次开发必须注明原项目地址
