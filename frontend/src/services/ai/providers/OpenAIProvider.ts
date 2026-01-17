@@ -53,7 +53,7 @@ export class OpenAIProvider extends BaseProvider {
     const timeoutMs = isThinkingModel ? 600000 : 300000 // 思考模型10分钟，普通模型5分钟
     
     let currentMaxTokensParam = this.maxTokensParamName
-    let requestMessages = this.supportsSystemMessage() ? messages : this.mergeSystemMessages(messages)
+    let requestMessages = messages
     while (true) {
       const response = await this.fetchWithTimeout(apiUrl, {
         method: 'POST',
@@ -406,18 +406,6 @@ export class OpenAIProvider extends BaseProvider {
     const normalized = modelId.toLowerCase()
     const keywords = ['gpt-5', 'o1', 'o3', 'o4', 'reasoning']
     return keywords.some(keyword => normalized.includes(keyword))
-  }
-
-  private supportsSystemMessage(): boolean {
-    const capability = this.modelConfig?.capabilities?.supportedParams?.systemMessage
-    if (capability === false) {
-      return false
-    }
-    return !this.isCodexModel(this.modelId)
-  }
-
-  private isCodexModel(modelId: string): boolean {
-    return modelId.toLowerCase().includes('codex')
   }
 
   /**
