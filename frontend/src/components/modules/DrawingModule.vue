@@ -170,7 +170,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Settings, AlertCircle, X } from 'lucide-vue-next'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { GeminiDrawingService } from '@/services/geminiDrawingService'
+import { createDrawingService } from '@/services/drawingServiceFactory'
 import { mapResolutionToStandard } from '@/utils/resolutionMapper'
 import DrawingChat from '@/components/drawing/DrawingChat.vue'
 import DrawingResult from '@/components/drawing/DrawingResult.vue'
@@ -343,7 +343,7 @@ const handleSendMessage = async (
     drawingStore.addMessage(userMessage)
 
     // 创建 Gemini 服务实例
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const service = createDrawingService(provider, model)
 
     // 判断是否使用流式输出
     // 简化处理: 图像模型始终使用非流式,只有纯文本模型使用流式
@@ -738,7 +738,7 @@ const handleRegenerate = async () => {
     const systemPrompt = drawingStore.systemPrompt?.trim() || ''
 
     // 创建 Gemini 服务实例
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const service = createDrawingService(provider, model)
 
     // 判断是否使用流式输出
     const useStreaming = !model.supportsImage

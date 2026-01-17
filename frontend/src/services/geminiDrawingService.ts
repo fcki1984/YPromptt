@@ -1,4 +1,5 @@
 import type { DrawingMessage, ImageGenerationConfig, GeneratedImage, ThoughtTraceItem } from '@/stores/drawingStore'
+import type { DrawingServiceResponse } from '@/services/drawingServiceTypes'
 import { getThinkingSupport } from '@/utils/thinkingSupport'
 
 /**
@@ -92,7 +93,7 @@ export class GeminiDrawingService {
     abortSignal?: AbortSignal,  // 支持中断请求
     silent: boolean = false,  // 静默模式，不输出日志
     systemPrompt?: string
-  ): Promise<GeminiResponse> {
+  ): Promise<DrawingServiceResponse> {
     // 使用 header 传递 API key
     const url = `${this.baseUrl}/models/${model}:generateContent`
 
@@ -222,7 +223,7 @@ export class GeminiDrawingService {
       console.log('Gemini API 响应:', data)
     }
 
-    return data
+    return data as DrawingServiceResponse
   }
 
   /**
@@ -337,7 +338,7 @@ export class GeminiDrawingService {
   /**
    * 从响应中提取图片
    */
-  extractImages(response: GeminiResponse, prompt: string, config: ImageGenerationConfig): GeneratedImage[] {
+  extractImages(response: DrawingServiceResponse, prompt: string, config: ImageGenerationConfig): GeneratedImage[] {
     const images: GeneratedImage[] = []
 
     if (!response.candidates || response.candidates.length === 0) {
@@ -391,7 +392,7 @@ export class GeminiDrawingService {
   /**
    * 从响应中提取文本
    */
-  extractText(response: GeminiResponse): string {
+  extractText(response: DrawingServiceResponse): string {
     if (!response.candidates || response.candidates.length === 0) {
       return ''
     }
@@ -410,14 +411,14 @@ export class GeminiDrawingService {
   /**
    * 检查响应是否被安全过滤器阻止
    */
-  isBlocked(response: GeminiResponse): boolean {
+  isBlocked(response: DrawingServiceResponse): boolean {
     return !!(response.promptFeedback?.blockReason)
   }
 
   /**
    * 获取阻止原因
    */
-  getBlockReason(response: GeminiResponse): string {
+  getBlockReason(response: DrawingServiceResponse): string {
     if (!response.promptFeedback?.blockReason) {
       return ''
     }
