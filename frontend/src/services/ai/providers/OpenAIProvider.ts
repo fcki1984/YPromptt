@@ -31,8 +31,11 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error('API URL 未配置')
     }
     let apiUrl = this.config.baseUrl.trim()
+    const useResponsesApi = this.isResponsesApiUrl(apiUrl)
     
-    if (apiUrl.includes('/chat/completions')) {
+    if (useResponsesApi) {
+      apiUrl = apiUrl.replace(/\/+$/, '')
+    } else if (apiUrl.includes('/chat/completions')) {
       // 已经是完整URL，直接使用
     } else if (apiUrl.includes('/v1')) {
       // 包含v1但没有chat/completions，拼接chat/completions
@@ -50,6 +53,7 @@ export class OpenAIProvider extends BaseProvider {
     const timeoutMs = isThinkingModel ? 600000 : 300000 // 思考模型10分钟，普通模型5分钟
     
     let currentMaxTokensParam = this.maxTokensParamName
+    let requestMessages = messages
     while (true) {
       const response = await this.fetchWithTimeout(apiUrl, {
         method: 'POST',
@@ -58,7 +62,9 @@ export class OpenAIProvider extends BaseProvider {
           'Authorization': `Bearer ${this.config.apiKey}`
         },
         body: JSON.stringify(
-          this.buildRequestBody(messages, stream, params, currentMaxTokensParam)
+          useResponsesApi
+            ? this.buildResponsesRequestBody(requestMessages, stream, params, currentMaxTokensParam)
+            : this.buildRequestBody(requestMessages, stream, params, currentMaxTokensParam)
         )
       }, timeoutMs)
 
@@ -67,6 +73,16 @@ export class OpenAIProvider extends BaseProvider {
         if (this.shouldRetryWithCompletionTokens(errorData, currentMaxTokensParam)) {
           currentMaxTokensParam = 'max_completion_tokens'
           this.maxTokensParamName = 'max_completion_tokens'
+          continue
+        }
+
+        if (useResponsesApi) {
+          if (this.shouldRetryWithoutInstructions(errorData, requestMessages)) {
+            requestMessages = this.mergeSystemMessages(requestMessages)
+            continue
+          }
+        } else if (this.shouldRetryWithoutSystemRole(errorData, requestMessages)) {
+          requestMessages = this.mergeSystemMessages(requestMessages)
           continue
         }
 
@@ -89,6 +105,26 @@ export class OpenAIProvider extends BaseProvider {
         if (data.choices && data.choices[0]?.message?.content) {
           // OpenAI 格式: {choices: [{message: {content: "text"}}]}
           result = data.choices[0].message.content
+        } else if (typeof data.output_text === 'string') {
+          // Responses API 直接返回output_text字段
+          result = data.output_text
+        } else if (Array.isArray(data.output)) {
+          // Responses API 输出结构
+          for (const output of data.output) {
+            const contents = output?.content
+            if (!Array.isArray(contents)) continue
+            for (const content of contents) {
+              if (typeof content?.text === 'string' && content.text.trim()) {
+                result = content.text
+                break
+              }
+              if (typeof content?.output_text === 'string' && content.output_text.trim()) {
+                result = content.output_text
+                break
+              }
+            }
+            if (result) break
+          }
         } else if (data.candidates && data.candidates[0]?.content?.parts) {
           // Gemini 格式: {candidates: [{content: {parts: [{text: "text"}]}}]}
           const parts = data.candidates[0].content.parts
@@ -161,6 +197,96 @@ export class OpenAIProvider extends BaseProvider {
     return requestBody
   }
 
+  private buildResponsesRequestBody(
+    messages: ChatMessage[],
+    stream: boolean,
+    params: APICallParams | undefined,
+    _maxTokensParam: 'max_tokens' | 'max_completion_tokens'
+  ) {
+    const { instructions, input } = this.buildResponsesInput(messages)
+
+    const requestBody: Record<string, any> = {
+      model: this.modelId,
+      input,
+      temperature: params?.temperature ?? 1.0,
+      top_p: params?.topP ?? 0.95,
+      ...(params?.frequencyPenalty !== undefined && { frequency_penalty: params.frequencyPenalty }),
+      ...(params?.presencePenalty !== undefined && { presence_penalty: params.presencePenalty }),
+      ...(stream && { stream: true })
+    }
+
+    if (instructions) {
+      requestBody.instructions = instructions
+    }
+
+    const maxTokensValue = params?.maxTokens ?? 8192
+    if (maxTokensValue !== undefined) {
+      requestBody.max_output_tokens = maxTokensValue
+    }
+
+    return requestBody
+  }
+
+  private buildResponsesInput(messages: ChatMessage[]): { instructions: string; input: any } {
+    const systemMessages = messages.filter(msg => msg.role === 'system')
+    const instructions = systemMessages
+      .map(msg => this.stringifyMessageContent(msg))
+      .filter(Boolean)
+      .join('\n\n')
+
+    const inputMessages = messages
+      .filter(msg => msg.role !== 'system')
+      .map(msg => {
+        if (this.hasMultimodalContent(msg)) {
+          return {
+            role: msg.role,
+            content: this.convertToResponsesContent(msg)
+          }
+        }
+
+        return {
+          role: msg.role,
+          content: this.stringifyMessageContent(msg)
+        }
+      })
+
+    return {
+      instructions,
+      input: inputMessages
+    }
+  }
+
+  private convertToResponsesContent(message: ChatMessage): MessageContent[] {
+    const content: MessageContent[] = []
+
+    if (typeof message.content === 'string' && message.content.trim()) {
+      content.push({ type: 'input_text', text: message.content })
+    } else if (Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (part.type === 'text' && part.text) {
+          content.push({ type: 'input_text', text: part.text })
+        }
+      }
+    }
+
+    if (message.attachments && message.attachments.length > 0) {
+      const openaiAttachments = OpenAIAttachmentHandler.convertAttachments(message.attachments)
+      for (const attachment of openaiAttachments) {
+        if (attachment.type !== 'image_url' || !attachment.image_url) {
+          continue
+        }
+        const imageUrl = typeof attachment.image_url === 'string'
+          ? attachment.image_url
+          : attachment.image_url.url
+        if (imageUrl) {
+          content.push({ type: 'input_image', image_url: imageUrl })
+        }
+      }
+    }
+
+    return content
+  }
+
   private resolveInitialMaxTokensParam(): 'max_tokens' | 'max_completion_tokens' {
     const configuredParam = this.modelConfig?.capabilities?.supportedParams.maxTokens
     if (configuredParam) {
@@ -195,6 +321,87 @@ export class OpenAIProvider extends BaseProvider {
     return isUnsupportedParam && referencesTokens && isMaxTokensParam
   }
 
+  private shouldRetryWithoutSystemRole(errorData: any, messages: ChatMessage[]): boolean {
+    if (!messages.some(msg => msg.role === 'system')) {
+      return false
+    }
+
+    const message = typeof errorData?.error?.message === 'string'
+      ? errorData.error.message.toLowerCase()
+      : ''
+
+    if (!message) {
+      return false
+    }
+
+    return message.includes('system') &&
+      (message.includes('unsupported') || message.includes('not supported') || message.includes('not allowed') || message.includes('invalid') || message.includes('role'))
+  }
+
+  private shouldRetryWithoutInstructions(errorData: any, messages: ChatMessage[]): boolean {
+    if (!messages.some(msg => msg.role === 'system')) {
+      return false
+    }
+
+    const message = typeof errorData?.error?.message === 'string'
+      ? errorData.error.message.toLowerCase()
+      : ''
+
+    if (!message) {
+      return false
+    }
+
+    return message.includes('instruction') ||
+      (message.includes('system') &&
+        (message.includes('unsupported') || message.includes('not supported') || message.includes('not allowed') || message.includes('invalid')))
+  }
+
+  private mergeSystemMessages(messages: ChatMessage[]): ChatMessage[] {
+    const systemMessages = messages.filter(msg => msg.role === 'system')
+    if (systemMessages.length === 0) {
+      return messages
+    }
+
+    const systemText = systemMessages
+      .map(msg => this.stringifyMessageContent(msg))
+      .filter(Boolean)
+      .join('\n\n')
+
+    const nonSystemMessages = messages.filter(msg => msg.role !== 'system')
+
+    if (!systemText) {
+      return nonSystemMessages
+    }
+
+    if (nonSystemMessages.length === 0) {
+      return [{ role: 'user', content: `System:\n${systemText}` }]
+    }
+
+    const [first, ...rest] = nonSystemMessages
+    if (first.role !== 'user') {
+      return [{ role: 'user', content: `System:\n${systemText}` }, ...nonSystemMessages]
+    }
+
+    const firstContent = this.stringifyMessageContent(first)
+    const merged = `System:\n${systemText}\n\n${firstContent}`.trim()
+    return [{ ...first, content: merged }, ...rest]
+  }
+
+  private stringifyMessageContent(message: ChatMessage): string {
+    if (typeof message.content === 'string') {
+      return message.content
+    }
+
+    if (Array.isArray(message.content)) {
+      const textParts = message.content
+        .filter(part => part.type === 'text' && part.text)
+        .map(part => part.text)
+      return textParts.join('\n')
+    }
+
+    return ''
+  }
+
   private requiresCompletionTokens(modelId: string): boolean {
     const normalized = modelId.toLowerCase()
     const keywords = ['gpt-5', 'o1', 'o3', 'o4', 'reasoning']
@@ -226,7 +433,15 @@ export class OpenAIProvider extends BaseProvider {
       let content: string | undefined
       
       // 支持多种流式响应格式
-      if (parsed.choices?.[0]?.delta?.content) {
+      if (parsed.type && typeof parsed.type === 'string') {
+        if (parsed.type.includes('response.output_text.delta') && typeof parsed.delta === 'string') {
+          content = parsed.delta
+        } else if (parsed.type.includes('response.output_text.done') && typeof parsed.text === 'string') {
+          content = parsed.text
+        }
+      }
+
+      if (!content && parsed.choices?.[0]?.delta?.content) {
         // OpenAI 流式格式
         content = parsed.choices[0].delta.content
       } else if (parsed.candidates?.[0]?.content?.parts) {
@@ -247,7 +462,7 @@ export class OpenAIProvider extends BaseProvider {
       }
       
       const finishReason = parsed.choices?.[0]?.finish_reason
-      const done = !!(finishReason || parsed.done)
+      const done = !!(finishReason || parsed.done || (parsed.type && parsed.type.includes('response.completed')))
       
       return {
         content: content || '',
@@ -257,6 +472,10 @@ export class OpenAIProvider extends BaseProvider {
       // JSON解析错误，返回null
       return null
     }
+  }
+
+  private isResponsesApiUrl(baseUrl: string): boolean {
+    return baseUrl.includes('/responses')
   }
 
   /**
