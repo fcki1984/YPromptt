@@ -1,6 +1,6 @@
 import type { DrawingMessage, ImageGenerationConfig, GeneratedImage } from '@/stores/drawingStore'
 
-interface OpenAIImageResponse {
+export interface OpenAIImageResponse {
   data?: Array<{
     b64_json?: string
     url?: string
@@ -11,7 +11,7 @@ interface OpenAIImageResponse {
   }
 }
 
-interface OpenAIChatResponse {
+export interface OpenAIChatResponse {
   choices?: Array<{
     message?: {
       content?: string
@@ -22,7 +22,7 @@ interface OpenAIChatResponse {
   }
 }
 
-type OpenAIDrawingResponse = OpenAIImageResponse | OpenAIChatResponse
+export type OpenAIDrawingResponse = OpenAIImageResponse | OpenAIChatResponse
 
 export class OpenAIDrawingService {
   private apiKey: string

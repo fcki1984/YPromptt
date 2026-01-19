@@ -171,6 +171,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Settings, AlertCircle, X } from 'lucide-vue-next'
 import { useDrawingStore } from '@/stores/drawingStore'
 import { getDrawingService } from '@/services/drawingServiceFactory'
+import { isGeminiResponse } from '@/services/drawingTypes'
 import { mapResolutionToStandard } from '@/utils/resolutionMapper'
 import DrawingChat from '@/components/drawing/DrawingChat.vue'
 import DrawingResult from '@/components/drawing/DrawingResult.vue'
@@ -460,7 +461,7 @@ const handleSendMessage = async (
             const responseText = service.extractText(batchResponse)
 
             // 提取结果
-            if (batchResponse.candidates && batchResponse.candidates.length > 0) {
+            if (isGeminiResponse(batchResponse) && batchResponse.candidates.length > 0) {
               const apiCandidate = batchResponse.candidates[0]
 
               // 提取文本
@@ -508,10 +509,10 @@ const handleSendMessage = async (
                 }
               }
 
-              if (batchResponse.usageMetadata?.thoughtsTokenCount !== undefined) {
+              if (isGeminiResponse(batchResponse) && batchResponse.usageMetadata?.thoughtsTokenCount !== undefined) {
                 candidate.thoughtTokens = batchResponse.usageMetadata.thoughtsTokenCount
               }
-              if (batchResponse.usageMetadata) {
+              if (isGeminiResponse(batchResponse) && batchResponse.usageMetadata) {
                 candidate.usageMetadata = JSON.parse(JSON.stringify(batchResponse.usageMetadata))
               }
             }
@@ -601,7 +602,7 @@ const handleSendMessage = async (
         })
 
         // 提取完整的模型响应（包括 thoughtSignature）
-        if (response.candidates && response.candidates.length > 0) {
+        if (isGeminiResponse(response) && response.candidates.length > 0) {
           const candidate = response.candidates[0]
 
           // 使用 API 返回的完整 parts（包含 thoughtSignature）
@@ -871,7 +872,7 @@ const handleRegenerate = async () => {
 
             const responseText = service.extractText(batchResponse)
 
-            if (batchResponse.candidates && batchResponse.candidates.length > 0) {
+            if (isGeminiResponse(batchResponse) && batchResponse.candidates.length > 0) {
               const apiCandidate = batchResponse.candidates[0]
 
               if (responseText) {
@@ -964,7 +965,7 @@ const handleRegenerate = async () => {
         }
 
         // 提取结果并添加到对话历史（复用现有逻辑）
-        if (response.candidates && response.candidates.length > 0) {
+        if (isGeminiResponse(response) && response.candidates.length > 0) {
           const candidate = response.candidates[0]
 
           const generatedImages = service.extractImages(
