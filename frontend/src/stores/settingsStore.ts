@@ -42,6 +42,7 @@ export interface ModelParams {
   // OpenAI 特有参数
   frequencyPenalty?: number
   presencePenalty?: number
+  reasoningEffort?: 'low' | 'medium' | 'high'
   
   // Claude/Gemini 特有参数
   topK?: number

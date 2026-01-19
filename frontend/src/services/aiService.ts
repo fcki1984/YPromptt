@@ -106,7 +106,8 @@ export class AIService {
       topP: modelParams.topP,
       frequencyPenalty: modelParams.frequencyPenalty,
       presencePenalty: modelParams.presencePenalty,
-      topK: modelParams.topK
+      topK: modelParams.topK,
+      reasoningEffort: modelParams.reasoningEffort
     } : undefined
 
     try {
