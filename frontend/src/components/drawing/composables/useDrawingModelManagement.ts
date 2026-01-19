@@ -76,21 +76,24 @@ export function useDrawingModelManagement() {
   }
 
   const showAddModel = (providerId: string) => {
+    const provider = getProviderForModel(providerId)
     addingModelToProvider.value = providerId
     editingModel.value = null
     loadingModels.value = false
     modelFetchError.value = ''
     modelSearchKeyword.value = ''
+    const providerType = provider?.type || 'google'
     newModel.value = {
       id: '',
       name: '',
       supportsImage: true,
-      apiType: 'google'
+      apiType: providerType === 'openai' ? 'openai' : providerType === 'custom' ? 'custom' : 'google'
     }
     showAddModelDialog.value = true
   }
 
   const editModel = (providerId: string, model: DrawingModel) => {
+    const provider = getProviderForModel(providerId)
     addingModelToProvider.value = providerId
     editingModel.value = model
     modelSearchKeyword.value = ''
@@ -98,7 +101,7 @@ export function useDrawingModelManagement() {
       id: model.id,
       name: model.name,
       supportsImage: model.supportsImage,
-      apiType: model.apiType || 'google'
+      apiType: model.apiType || (provider?.type === 'openai' ? 'openai' : provider?.type === 'custom' ? 'custom' : 'google')
     }
     showAddModelDialog.value = true
   }
@@ -133,17 +136,19 @@ export function useDrawingModelManagement() {
       }
 
       // 为绘图模块获取Gemini模型
+      const providerType = provider.type || 'google'
+      const requestType = providerType === 'openai' ? 'openai' : 'google'
       const models = await aiService.getAvailableModels(
         {
           id: provider.id,
           name: provider.name,
-          type: 'google' as const,
+          type: requestType,
           apiKey: provider.apiKey,
           baseUrl: provider.baseURL,
           models: [],
           enabled: true
         },
-        'google'
+        requestType
       )
 
       providerModelsCache.value[providerId] = models

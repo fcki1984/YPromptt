@@ -33,7 +33,7 @@ interface GeminiRequest {
 /**
  * Gemini API 响应
  */
-interface GeminiResponse {
+export interface GeminiResponse {
   candidates: Array<{
     content: {
       parts: Array<{

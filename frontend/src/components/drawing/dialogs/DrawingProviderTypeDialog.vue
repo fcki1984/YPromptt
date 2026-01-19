@@ -15,6 +15,17 @@
           </div>
         </button>
 
+        <!-- OpenAI Compatible -->
+        <button
+          @click="$emit('select', 'openai')"
+          class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+        >
+          <div class="font-medium text-gray-900">OpenAI 兼容</div>
+          <div class="text-sm text-gray-600 mt-1">
+            适用于 OpenAI 协议兼容的绘图服务
+          </div>
+        </button>
+
         <!-- 自定义 -->
         <button
           @click="$emit('select', 'custom')"
@@ -41,7 +52,7 @@
 
 <script setup lang="ts">
 defineEmits<{
-  'select': ['google' | 'custom']
+  'select': ['google' | 'openai' | 'custom']
   'close': []
 }>()
 </script>

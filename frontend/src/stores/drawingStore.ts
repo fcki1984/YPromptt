@@ -93,6 +93,7 @@ export interface UsageMetadata {
 export interface DrawingProvider {
   id: string
   name: string
+  type?: 'google' | 'openai' | 'custom'
   apiKey: string
   baseURL?: string
   models: DrawingModel[]
@@ -566,6 +567,27 @@ export const useDrawingStore = defineStore('drawing', () => {
 
   // 方法：从 localStorage 加载设置
   const loadSettings = () => {
+    const inferProviderType = (provider: DrawingProvider): DrawingProvider['type'] => {
+      if (provider.type) return provider.type
+      const modelTypes = provider.models?.map(model => model.apiType).filter(Boolean) as DrawingModel['apiType'][]
+      if (modelTypes.length > 0) {
+        const uniqueTypes = Array.from(new Set(modelTypes))
+        if (uniqueTypes.length === 1) {
+          if (uniqueTypes[0] === 'openai') {
+            return 'openai'
+          }
+          if (uniqueTypes[0] === 'custom') {
+            return 'custom'
+          }
+          return 'google'
+        }
+      }
+      if (provider.baseURL?.includes('openai')) {
+        return 'openai'
+      }
+      return 'google'
+    }
+
     try {
       const saved = localStorage.getItem(DRAWING_SETTINGS_KEY)
       if (saved) {
@@ -606,12 +628,17 @@ export const useDrawingStore = defineStore('drawing', () => {
       // 加载提供商
       const savedProviders = localStorage.getItem(DRAWING_PROVIDERS_KEY)
       if (savedProviders) {
-        providers.value = JSON.parse(savedProviders)
+        const parsedProviders = JSON.parse(savedProviders) as DrawingProvider[]
+        providers.value = parsedProviders.map(provider => ({
+          ...provider,
+          type: provider.type || inferProviderType(provider)
+        }))
       } else {
         // 初始化默认提供商
         providers.value = [{
           id: 'gemini-default',
           name: 'Gemini',
+          type: 'google',
           apiKey: '',
           baseURL: 'https://generativelanguage.googleapis.com/v1beta',
           models: [
