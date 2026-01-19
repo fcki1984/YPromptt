@@ -18,6 +18,19 @@
         </button>
 
         <button
+          @click="$emit('select', 'openai-responses')"
+          class="w-full p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition-colors"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <div>
+              <h4 class="font-medium">OpenAI Responses</h4>
+              <p class="text-sm text-gray-500">官方 OpenAI Responses API 协议</p>
+            </div>
+          </div>
+        </button>
+
+        <button
           @click="$emit('select', 'anthropic')"
           class="w-full p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition-colors"
         >
@@ -71,7 +84,7 @@
 
 <script setup lang="ts">
 defineEmits<{
-  select: [type: 'openai' | 'anthropic' | 'google' | 'custom']
+  select: [type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom']
   close: []
 }>()
 </script>

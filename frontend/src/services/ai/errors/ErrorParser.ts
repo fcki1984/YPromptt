@@ -91,6 +91,7 @@ export class ErrorParser {
   private getModelSuggestion(apiType: string): string {
     switch (apiType) {
       case 'openai':
+      case 'openai-responses':
         return '当前OpenAI模型主要支持图片格式。建议切换到支持更多文件类型的模型（如Gemini）'
       case 'anthropic':
         return '当前Claude模型支持图片和PDF文档格式。建议切换到支持更多文件类型的模型（如Gemini），或使用支持的格式'

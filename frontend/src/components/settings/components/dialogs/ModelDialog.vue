@@ -81,6 +81,7 @@
           >
             <option value="">选择API类型</option>
             <option value="openai">OpenAI 兼容</option>
+            <option value="openai-responses">OpenAI Responses</option>
             <option value="anthropic">Anthropic 兼容</option>
             <option value="google">Gemini 兼容</option>
           </select>

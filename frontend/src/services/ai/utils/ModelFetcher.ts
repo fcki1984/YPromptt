@@ -16,11 +16,12 @@ export class ModelFetcher {
     }
   }
 
-  static async getModels(provider: ProviderConfig, apiType?: 'openai' | 'anthropic' | 'google'): Promise<string[]> {
+  static async getModels(provider: ProviderConfig, apiType?: 'openai' | 'openai-responses' | 'anthropic' | 'google'): Promise<string[]> {
     const type = apiType || provider.type
     
     switch (type) {
       case 'openai':
+      case 'openai-responses':
         return await this.getOpenAIModels(provider)
       case 'anthropic':
         return await this.getAnthropicModels()
@@ -111,10 +112,11 @@ export class ModelFetcher {
     ].sort()
   }
 
-  private static async getCustomProviderModels(provider: ProviderConfig, preferredApiType?: 'openai' | 'anthropic' | 'google'): Promise<string[]> {
+  private static async getCustomProviderModels(provider: ProviderConfig, preferredApiType?: 'openai' | 'openai-responses' | 'anthropic' | 'google'): Promise<string[]> {
     if (preferredApiType) {
       switch (preferredApiType) {
         case 'openai':
+        case 'openai-responses':
           return await this.getOpenAIModels(provider)
         case 'anthropic':
           return await this.getAnthropicModels()
@@ -215,6 +217,8 @@ export class ModelFetcher {
     }
     
     let apiUrl = baseUrl.trim()
+    apiUrl = apiUrl.replace(/\/chat\/completions(?:\/)?$/, '')
+    apiUrl = apiUrl.replace(/\/responses(?:\/)?$/, '')
     
     if (apiUrl.endsWith('/models') || apiUrl.includes('/models?') || apiUrl.includes('/models/')) {
       return apiUrl

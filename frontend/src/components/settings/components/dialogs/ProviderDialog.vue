@@ -18,7 +18,7 @@
             />
           </div>
 
-          <div v-if="providerType === 'custom' || (providerType && ['openai', 'anthropic', 'google'].includes(providerType) && getProviderTemplate(providerType).allowCustomUrl)">
+          <div v-if="providerType === 'custom' || (providerType && ['openai', 'openai-responses', 'anthropic', 'google'].includes(providerType) && getProviderTemplate(providerType).allowCustomUrl)">
             <label class="block text-sm font-medium text-gray-700 mb-1">
               API URL
               <span v-if="providerType !== 'custom'" class="text-xs text-gray-500">(可选，留空使用官方完整地址)</span>
@@ -78,12 +78,12 @@
 <script setup lang="ts">
 defineProps<{
   editing: boolean
-  providerType: 'openai' | 'anthropic' | 'google' | 'custom'
+  providerType: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom'
   name: string
   baseUrl: string
   apiKey: string
   getDefaultBaseUrl: (type: string) => string
-  getProviderTemplate: (type: 'openai' | 'anthropic' | 'google' | 'custom') => any
+  getProviderTemplate: (type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom') => any
 }>()
 
 defineEmits<{
