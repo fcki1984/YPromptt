@@ -30,7 +30,17 @@ export class OpenAIProvider extends BaseProvider {
     if (!this.config.baseUrl) {
       throw new Error('API URL 未配置')
     }
-    const { apiUrl, protocol } = this.resolveApiEndpoint(this.config.baseUrl)
+    let apiUrl = this.config.baseUrl.trim()
+    
+    if (apiUrl.includes('/chat/completions')) {
+      // 已经是完整URL，直接使用
+    } else if (apiUrl.includes('/v1')) {
+      // 包含v1但没有chat/completions，拼接chat/completions
+      apiUrl = apiUrl.replace(/\/+$/, '') + '/chat/completions'
+    } else {
+      // 基础URL，需要拼接完整路径
+      apiUrl = apiUrl.replace(/\/+$/, '') + '/v1/chat/completions'
+    }
     
     // 使用传入的模型ID
     const modelId = this.modelId
@@ -48,7 +58,7 @@ export class OpenAIProvider extends BaseProvider {
           'Authorization': `Bearer ${this.config.apiKey}`
         },
         body: JSON.stringify(
-          this.buildRequestBody(messages, stream, params, currentMaxTokensParam, protocol)
+          this.buildRequestBody(messages, stream, params, currentMaxTokensParam)
         )
       }, timeoutMs)
 
@@ -75,15 +85,11 @@ export class OpenAIProvider extends BaseProvider {
         
         // 支持多种API响应格式的内容提取
         let result: string | undefined
-
-        if (protocol === 'responses') {
-          result = this.extractResponsesOutputText(data)
-        }
         
-        if (!result && data.choices && data.choices[0]?.message?.content) {
+        if (data.choices && data.choices[0]?.message?.content) {
           // OpenAI 格式: {choices: [{message: {content: "text"}}]}
           result = data.choices[0].message.content
-        } else if (!result && data.candidates && data.candidates[0]?.content?.parts) {
+        } else if (data.candidates && data.candidates[0]?.content?.parts) {
           // Gemini 格式: {candidates: [{content: {parts: [{text: "text"}]}}]}
           const parts = data.candidates[0].content.parts
           // 查找包含text的部分（过滤掉thought等）
@@ -93,10 +99,10 @@ export class OpenAIProvider extends BaseProvider {
               break
             }
           }
-        } else if (!result && data.content && typeof data.content === 'string') {
+        } else if (data.content && typeof data.content === 'string') {
           // 直接返回内容格式
           result = data.content
-        } else if (!result && data.text && typeof data.text === 'string') {
+        } else if (data.text && typeof data.text === 'string') {
           // 简单文本格式
           result = data.text
         }
@@ -111,7 +117,7 @@ export class OpenAIProvider extends BaseProvider {
         
         return {
           content: result,
-          finishReason: data.choices?.[0]?.finish_reason || data?.response?.status
+          finishReason: data.choices?.[0]?.finish_reason
         }
 
       }
@@ -122,19 +128,24 @@ export class OpenAIProvider extends BaseProvider {
     messages: ChatMessage[],
     stream: boolean,
     params: APICallParams | undefined,
-    maxTokensParam: 'max_tokens' | 'max_completion_tokens',
-    protocol: 'chat-completions' | 'responses'
+    maxTokensParam: 'max_tokens' | 'max_completion_tokens'
   ) {
-    if (protocol === 'responses') {
-      return this.buildResponsesRequestBody(messages, stream, params)
-    }
-
     const requestBody: Record<string, any> = {
       model: this.modelId,
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: this.toChatCompletionContent(msg)
-      })),
+      messages: messages.map(msg => {
+        if (this.hasMultimodalContent(msg)) {
+          const multimodalContent = this.convertToMultimodalContent(msg)
+          return {
+            role: msg.role,
+            content: multimodalContent
+          }
+        } else {
+          return {
+            role: msg.role,
+            content: typeof msg.content === 'string' ? msg.content : msg.content[0]?.text || ''
+          }
+        }
+      }),
       temperature: params?.temperature ?? 1.0,
       top_p: params?.topP ?? 0.95,
       ...(params?.frequencyPenalty !== undefined && { frequency_penalty: params.frequencyPenalty }),
@@ -148,77 +159,6 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     return requestBody
-  }
-
-  private buildResponsesRequestBody(
-    messages: ChatMessage[],
-    stream: boolean,
-    params: APICallParams | undefined
-  ) {
-    const requestBody: Record<string, any> = {
-      model: this.modelId,
-      input: messages.map(msg => ({
-        role: msg.role,
-        content: this.toResponsesContent(msg)
-      })),
-      temperature: params?.temperature ?? 1.0,
-      top_p: params?.topP ?? 0.95,
-      ...(params?.frequencyPenalty !== undefined && { frequency_penalty: params.frequencyPenalty }),
-      ...(params?.presencePenalty !== undefined && { presence_penalty: params.presencePenalty }),
-      ...(params?.reasoningEffort && { reasoning: { effort: params.reasoningEffort } }),
-      ...(stream && { stream: true })
-    }
-
-    const maxTokensValue = params?.maxTokens ?? 8192
-    if (maxTokensValue !== undefined) {
-      requestBody.max_output_tokens = maxTokensValue
-    }
-
-    return requestBody
-  }
-
-  private toChatCompletionContent(message: ChatMessage): string | MessageContent[] {
-    if (this.hasMultimodalContent(message)) {
-      return this.convertToMultimodalContent(message)
-    }
-
-    if (typeof message.content === 'string') {
-      return message.content
-    }
-
-    return message.content[0]?.text || ''
-  }
-
-  private toResponsesContent(message: ChatMessage): Array<Record<string, any>> {
-    const parts = this.getMessageContentParts(message)
-
-    return parts
-      .map(part => {
-        if (part.type === 'image_url' && part.image_url?.url) {
-          return { type: 'input_image', image_url: part.image_url.url }
-        }
-
-        if (part.text) {
-          return { type: 'input_text', text: part.text }
-        }
-
-        return null
-      })
-      .filter(Boolean) as Array<Record<string, any>>
-  }
-
-  private getMessageContentParts(message: ChatMessage): MessageContent[] {
-    if (this.hasMultimodalContent(message)) {
-      return this.convertToMultimodalContent(message)
-    }
-
-    if (Array.isArray(message.content)) {
-      return message.content
-    }
-
-    return message.content.trim()
-      ? [{ type: 'text', text: message.content }]
-      : []
   }
 
   private resolveInitialMaxTokensParam(): 'max_tokens' | 'max_completion_tokens' {
@@ -289,13 +229,6 @@ export class OpenAIProvider extends BaseProvider {
       if (parsed.choices?.[0]?.delta?.content) {
         // OpenAI 流式格式
         content = parsed.choices[0].delta.content
-      } else if (typeof parsed.type === 'string' && parsed.type.startsWith('response.output_text')) {
-        // OpenAI Responses API 流式格式
-        if (typeof parsed.delta === 'string') {
-          content = parsed.delta
-        } else if (typeof parsed.text === 'string') {
-          content = parsed.text
-        }
       } else if (parsed.candidates?.[0]?.content?.parts) {
         // Gemini SSE 流式格式
         const parts = parsed.candidates[0].content.parts
@@ -314,8 +247,7 @@ export class OpenAIProvider extends BaseProvider {
       }
       
       const finishReason = parsed.choices?.[0]?.finish_reason
-      const responsesDoneTypes = ['response.completed', 'response.output_text.done', 'response.output_text.final']
-      const done = !!(finishReason || parsed.done || (typeof parsed.type === 'string' && responsesDoneTypes.includes(parsed.type)))
+      const done = !!(finishReason || parsed.done)
       
       return {
         content: content || '',
@@ -356,50 +288,5 @@ export class OpenAIProvider extends BaseProvider {
     }
     
     return content
-  }
-
-  private resolveApiEndpoint(baseUrl: string): { apiUrl: string; protocol: 'chat-completions' | 'responses' } {
-    let apiUrl = baseUrl.trim()
-
-    if (apiUrl.includes('/responses')) {
-      return { apiUrl, protocol: 'responses' }
-    }
-
-    if (apiUrl.includes('/chat/completions')) {
-      return { apiUrl, protocol: 'chat-completions' }
-    }
-
-    if (apiUrl.includes('/v1')) {
-      apiUrl = apiUrl.replace(/\/+$/, '') + '/chat/completions'
-    } else {
-      apiUrl = apiUrl.replace(/\/+$/, '') + '/v1/chat/completions'
-    }
-
-    return { apiUrl, protocol: 'chat-completions' }
-  }
-
-  private extractResponsesOutputText(data: any): string | undefined {
-    if (typeof data?.output_text === 'string') {
-      return data.output_text
-    }
-
-    if (Array.isArray(data?.output)) {
-      const textParts: string[] = []
-      for (const output of data.output) {
-        if (output?.type === 'message' && Array.isArray(output.content)) {
-          for (const content of output.content) {
-            if (content?.type === 'output_text' && typeof content.text === 'string') {
-              textParts.push(content.text)
-            }
-          }
-        }
-      }
-
-      if (textParts.length > 0) {
-        return textParts.join('')
-      }
-    }
-
-    return undefined
   }
 }
