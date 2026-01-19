@@ -272,7 +272,7 @@ import ImageGenerator from './optimizer/ImageGenerator.vue'
 import StructureGuide from './optimizer/StructureGuide.vue'
 import { compileOmniPrompt } from './optimizer/geminiService'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { createDrawingService } from '@/services/drawingServiceFactory'
+import { GeminiDrawingService } from '@/services/geminiDrawingService'
 
 const drawingStore = useDrawingStore()
 
@@ -461,7 +461,7 @@ const handleOptimizeFinalPrompt = async () => {
 
   isOptimizingPrompt.value = true
   try {
-    const service = createDrawingService(provider, model)
+    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
     const langName = activeLang.value === 'cn' ? "Chinese" : "English"
 
     // 使用Imagen 3专业系统提示词

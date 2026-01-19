@@ -614,7 +614,6 @@ import DOMPurify from 'dompurify'
 import { useDrawingStore } from '@/stores/drawingStore'
 import type { DrawingMessage } from '@/stores/drawingStore'
 import { fileToBase64, getFileMimeType } from '@/services/geminiDrawingService'
-import { createDrawingService } from '@/services/drawingServiceFactory'
 import SystemPromptModal from '@/components/modules/optimize/components/SystemPromptModal.vue'
 
 // Props
@@ -1080,8 +1079,9 @@ const translateText = async (targetLanguage: 'en' | 'zh') => {
       timestamp: Date.now()
     }]
 
-    // 使用当前服务进行翻译
-    const service = createDrawingService(provider, model)
+    // 使用 Gemini 服务进行翻译
+    const { GeminiDrawingService } = await import('@/services/geminiDrawingService')
+    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
 
     // 使用非流式API获取翻译结果（静默模式，不输出日志）
     const response = await service.generateContent(
