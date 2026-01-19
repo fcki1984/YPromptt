@@ -307,12 +307,15 @@ export class OpenAIDrawingService {
       .replace(/\/+$/, '')
 
     if (normalizedBase !== base) {
-      if (normalizedBase.includes('/v1')) {
+      if (normalizedBase.includes('/v1') || normalizedBase.includes('/openai')) {
         return `${normalizedBase}/images/generations`
       }
       return `${normalizedBase}/v1/images/generations`
     }
 
+    if (base.includes('/openai')) {
+      return `${base}/images/generations`
+    }
     if (base.includes('/v1')) {
       return `${base}/images/generations`
     }
@@ -335,12 +338,15 @@ export class OpenAIDrawingService {
       .replace(/\/+$/, '')
 
     if (normalizedBase !== base) {
-      if (normalizedBase.includes('/v1')) {
+      if (normalizedBase.includes('/v1') || normalizedBase.includes('/openai')) {
         return `${normalizedBase}/chat/completions`
       }
       return `${normalizedBase}/v1/chat/completions`
     }
 
+    if (base.includes('/openai')) {
+      return `${base}/chat/completions`
+    }
     if (base.includes('/v1')) {
       return `${base}/chat/completions`
     }
