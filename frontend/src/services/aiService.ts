@@ -2,6 +2,7 @@ import type { ProviderConfig } from '@/stores/settingsStore'
 import type { ChatMessage as PromptChatMessage, MessageAttachment } from '@/stores/promptStore'
 import { 
   OpenAIProvider, 
+  OpenAIResponsesProvider,
   AnthropicProvider, 
   GoogleProvider,
   StreamProcessor,
@@ -55,6 +56,9 @@ export class AIService {
       case 'openai':
         providerInstance = new OpenAIProvider(provider, modelId)
         break
+      case 'openai-responses':
+        providerInstance = new OpenAIResponsesProvider(provider, modelId)
+        break
       case 'anthropic':
         providerInstance = new AnthropicProvider(provider, modelId)
         break
@@ -106,7 +110,8 @@ export class AIService {
       topP: modelParams.topP,
       frequencyPenalty: modelParams.frequencyPenalty,
       presencePenalty: modelParams.presencePenalty,
-      topK: modelParams.topK
+      topK: modelParams.topK,
+      reasoningEffort: modelParams.reasoningEffort
     } : undefined
 
     try {
@@ -184,7 +189,7 @@ export class AIService {
 
   async getAvailableModels(
     provider: ProviderConfig, 
-    preferredApiType?: 'openai' | 'anthropic' | 'google'
+    preferredApiType?: 'openai' | 'openai-responses' | 'anthropic' | 'google'
   ): Promise<string[]> {
     return await ModelFetcher.getModels(provider, preferredApiType)
   }

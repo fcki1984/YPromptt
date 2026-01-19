@@ -2,7 +2,7 @@ import type { ProviderConfig } from '@/stores/settingsStore'
 
 // 内置提供商配置接口
 export interface BuiltinProviderConfig {
-  type: 'openai' | 'anthropic' | 'google' | 'custom'
+  type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom'
   name: string
   apiKey: string
   baseUrl?: string
@@ -10,7 +10,7 @@ export interface BuiltinProviderConfig {
     id: string
     name: string
     enabled?: boolean
-    apiType?: 'openai' | 'anthropic' | 'google' // 模型级别的API类型
+    apiType?: 'openai' | 'openai-responses' | 'anthropic' | 'google' // 模型级别的API类型
   }>
   enabled?: boolean
 }
@@ -39,6 +39,7 @@ export function convertBuiltinToProviderConfig(builtin: BuiltinProviderConfig): 
 
   const defaultBaseUrls = {
     openai: 'https://api.openai.com/v1/chat/completions',
+    'openai-responses': 'https://api.openai.com/v1/responses',
     anthropic: 'https://api.anthropic.com/v1/messages',
     google: 'https://generativelanguage.googleapis.com/v1beta'
   }

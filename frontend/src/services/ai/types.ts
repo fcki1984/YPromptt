@@ -53,4 +53,5 @@ export interface APICallParams {
   frequencyPenalty?: number
   presencePenalty?: number
   topK?: number
+  reasoningEffort?: 'low' | 'medium' | 'high'
 }

@@ -13,11 +13,13 @@
           <span :class="[
             'px-2 py-1 rounded',
             currentApiType === 'openai' ? 'bg-green-100 text-green-700' :
+            currentApiType === 'openai-responses' ? 'bg-emerald-100 text-emerald-700' :
             currentApiType === 'anthropic' ? 'bg-purple-100 text-purple-700' :
             currentApiType === 'google' ? 'bg-blue-100 text-blue-700' :
             'bg-gray-100 text-gray-700'
           ]">
             {{ currentApiType === 'openai' ? 'OpenAI' :
+               currentApiType === 'openai-responses' ? 'OpenAI Responses' :
                currentApiType === 'anthropic' ? 'Claude' :
                currentApiType === 'google' ? 'Gemini' : 'Unknown' }}
           </span>
@@ -128,6 +130,25 @@
         <p class="text-xs text-gray-500">{{ getParamDescription('topP') }}</p>
       </div>
 
+      <!-- Reasoning Effort (OpenAI Responses only) -->
+      <div v-if="isParamSupported('reasoningEffort')" class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">
+            {{ getParamLabel('reasoningEffort') }}
+          </label>
+          <select
+            v-model="params.reasoningEffort"
+            @change="handleSelectParamChange('reasoningEffort', $event)"
+            class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </div>
+        <p class="text-xs text-gray-500">{{ getParamDescription('reasoningEffort') }}</p>
+      </div>
+
       <!-- Frequency Penalty (OpenAI only) -->
       <div v-if="isParamSupported('frequencyPenalty')" class="space-y-2">
         <div class="flex items-center justify-between">
@@ -227,6 +248,10 @@
               <span class="text-green-600 mr-2">•</span>
               <span><strong>OpenAI</strong> 支持: Temperature, Max Tokens, Top P, Frequency Penalty, Presence Penalty</span>
             </li>
+            <li v-else-if="currentApiType === 'openai-responses'" class="flex items-start">
+              <span class="text-emerald-600 mr-2">•</span>
+              <span><strong>OpenAI Responses</strong> 支持: Temperature, Max Tokens, Top P, Reasoning Effort</span>
+            </li>
             <li v-else-if="currentApiType === 'anthropic'" class="flex items-start">
               <span class="text-purple-600 mr-2">•</span>
               <span><strong>Claude</strong> 支持: Temperature, Max Tokens, Top P, Top K</span>
@@ -277,6 +302,13 @@ const handleParamChange = (paramName: keyof ModelParams, event: Event) => {
   
   updateCurrentModelParams({
     [paramName]: value
+  })
+}
+
+const handleSelectParamChange = (paramName: keyof ModelParams, event: Event) => {
+  const target = event.target as HTMLSelectElement
+  updateCurrentModelParams({
+    [paramName]: target.value
   })
 }
 

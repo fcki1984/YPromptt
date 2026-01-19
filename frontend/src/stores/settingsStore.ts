@@ -8,7 +8,7 @@ export interface ModelConfig {
   name: string
   provider: string
   enabled: boolean
-  apiType?: 'openai' | 'anthropic' | 'google' // 模型使用的API类型
+  apiType?: 'openai' | 'openai-responses' | 'anthropic' | 'google' // 模型使用的API类型
   
   // 能力检测相关字段
   capabilities?: ModelCapabilities
@@ -42,6 +42,7 @@ export interface ModelParams {
   // OpenAI 特有参数
   frequencyPenalty?: number
   presencePenalty?: number
+  reasoningEffort?: 'low' | 'medium' | 'high'
   
   // Claude/Gemini 特有参数
   topK?: number
@@ -65,7 +66,7 @@ export interface TestResult {
 export interface ProviderConfig {
   id: string
   name: string
-  type: 'openai' | 'anthropic' | 'google' | 'custom'
+  type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom'
   apiKey: string
   baseUrl?: string
   models: ModelConfig[]
@@ -128,12 +129,19 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // 获取预设的提供商模板
-  const getProviderTemplate = (type: 'openai' | 'anthropic' | 'google' | 'custom') => {
+  const getProviderTemplate = (type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom') => {
     const templates = {
       openai: {
         name: 'OpenAI',
         type: 'openai' as const,
         baseUrl: 'https://api.openai.com/v1/chat/completions',
+        allowCustomUrl: true,
+        models: []
+      },
+      'openai-responses': {
+        name: 'OpenAI Responses',
+        type: 'openai-responses' as const,
+        baseUrl: 'https://api.openai.com/v1/responses',
         allowCustomUrl: true,
         models: []
       },
@@ -198,7 +206,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // 添加新的提供商
-  const addProvider = (type: 'openai' | 'anthropic' | 'google' | 'custom', customConfig?: Partial<ProviderConfig>) => {
+  const addProvider = (type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom', customConfig?: Partial<ProviderConfig>) => {
     const template = getProviderTemplate(type)
     
     // 生成唯一ID

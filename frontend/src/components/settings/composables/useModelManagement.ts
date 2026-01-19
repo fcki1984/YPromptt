@@ -19,7 +19,7 @@ export function useModelManagement() {
   const newModel = ref({
     name: '',
     id: '',
-    apiType: '' as 'openai' | 'anthropic' | 'google' | ''
+    apiType: '' as 'openai' | 'openai-responses' | 'anthropic' | 'google' | ''
   })
 
   const getCurrentProviderModels = computed(() => {
@@ -45,6 +45,8 @@ export function useModelManagement() {
     switch (apiType) {
       case 'openai':
         return 'bg-green-500'
+      case 'openai-responses':
+        return 'bg-emerald-500'
       case 'anthropic':
         return 'bg-purple-500'
       case 'google':
@@ -58,6 +60,8 @@ export function useModelManagement() {
     switch (apiType) {
       case 'openai':
         return 'OpenAI'
+      case 'openai-responses':
+        return 'OpenAI Responses'
       case 'anthropic':
         return 'Claude'
       case 'google':
@@ -80,11 +84,11 @@ export function useModelManagement() {
     
     if (provider?.type === 'custom') {
       defaultApiType = 'openai'
-    } else if (provider?.type && provider.type in ['openai', 'anthropic', 'google']) {
+    } else if (provider?.type && provider.type in ['openai', 'openai-responses', 'anthropic', 'google']) {
       defaultApiType = provider.type
     }
     
-    newModel.value = { name: '', id: '', apiType: defaultApiType as 'openai' | 'anthropic' | 'google' | '' }
+    newModel.value = { name: '', id: '', apiType: defaultApiType as 'openai' | 'openai-responses' | 'anthropic' | 'google' | '' }
     showAddModelDialog.value = true
   }
 
@@ -124,7 +128,7 @@ export function useModelManagement() {
             ...provider.models[modelIndex],
             name: newModel.value.name,
             id: newModel.value.id,
-            apiType: apiType as 'openai' | 'anthropic' | 'google'
+            apiType: apiType as 'openai' | 'openai-responses' | 'anthropic' | 'google'
           }
         }
       }
@@ -134,7 +138,7 @@ export function useModelManagement() {
         id: newModel.value.id,
         name: newModel.value.name,
         enabled: true,
-        apiType: apiType as 'openai' | 'anthropic' | 'google'
+        apiType: apiType as 'openai' | 'openai-responses' | 'anthropic' | 'google'
       })
     }
     
@@ -167,7 +171,7 @@ export function useModelManagement() {
         throw new Error('请先配置提供商的API密钥和基础URL')
       }
       
-      const preferredApiType = newModel.value.apiType as 'openai' | 'anthropic' | 'google' | undefined
+      const preferredApiType = newModel.value.apiType as 'openai' | 'openai-responses' | 'anthropic' | 'google' | undefined
       const models = await aiService.getAvailableModels(provider, preferredApiType)
       
       providerModelsCache.value[providerId] = models

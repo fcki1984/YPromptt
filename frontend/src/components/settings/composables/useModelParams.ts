@@ -16,7 +16,7 @@ export function useModelParams() {
   })
 
   // 获取默认参数值（基于最佳实践）
-  const getDefaultParams = (apiType: 'openai' | 'anthropic' | 'google' | 'custom' | null): ModelParams => {
+  const getDefaultParams = (apiType: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom' | null): ModelParams => {
     const defaults: ModelParams = {
       temperature: 1.0,      // 平衡创造性和稳定性（AI 对话/生成场景最佳实践）
       maxTokens: 8192,       // 足够长的输出，适合提示词生成场景
@@ -26,6 +26,8 @@ export function useModelParams() {
     if (apiType === 'openai' || apiType === 'custom') {
       defaults.frequencyPenalty = 0    // 不惩罚词频（提示词生成需要重复关键词）
       defaults.presencePenalty = 0     // 不强制多样性
+    } else if (apiType === 'openai-responses') {
+      defaults.reasoningEffort = 'medium'
     } else if (apiType === 'anthropic' || apiType === 'google') {
       defaults.topK = 0      // 0 表示不限制（Claude/Gemini 推荐）
     }
@@ -112,6 +114,9 @@ export function useModelParams() {
       case 'frequencyPenalty':
       case 'presencePenalty':
         return apiType === 'openai'
+
+      case 'reasoningEffort':
+        return apiType === 'openai-responses'
       
       case 'topK':
         return apiType === 'anthropic' || apiType === 'google'
@@ -151,6 +156,7 @@ export function useModelParams() {
       topP: 'Top P',
       frequencyPenalty: 'Frequency Penalty',
       presencePenalty: 'Presence Penalty',
+      reasoningEffort: 'Reasoning Effort',
       topK: 'Top K'
     }
     return labels[paramName] || paramName
@@ -167,6 +173,7 @@ export function useModelParams() {
       topP: '核采样参数，控制考虑的词汇范围',
       frequencyPenalty: '降低重复词汇的频率（OpenAI 专用）',
       presencePenalty: '鼓励模型谈论新话题（OpenAI 专用）',
+      reasoningEffort: '控制模型推理强度（OpenAI Responses 专用）',
       topK: '只考虑概率最高的 K 个词汇（Claude/Gemini）'
     }
     return descriptions[paramName] || ''

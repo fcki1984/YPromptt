@@ -10,7 +10,7 @@ export function useProviderManagement() {
   const showAddProviderTypeDialog = ref(false)
   const showAddProvider = ref(false)
   const editingProvider: Ref<ProviderConfig | null> = ref(null)
-  const selectedProviderType = ref<'openai' | 'anthropic' | 'google' | 'custom'>('custom')
+  const selectedProviderType = ref<'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom'>('custom')
   
   const newProvider = ref({
     name: '',
@@ -18,7 +18,7 @@ export function useProviderManagement() {
     apiKey: ''
   })
 
-  const getProviderTemplate = (type: 'openai' | 'anthropic' | 'google' | 'custom') => {
+  const getProviderTemplate = (type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom') => {
     return settingsStore.getProviderTemplate(type)
   }
 
@@ -26,6 +26,8 @@ export function useProviderManagement() {
     switch (type) {
       case 'openai':
         return 'https://api.openai.com/v1/chat/completions'
+      case 'openai-responses':
+        return 'https://api.openai.com/v1/responses'
       case 'anthropic':
         return 'https://api.anthropic.com/v1/messages'
       case 'google':
@@ -41,7 +43,7 @@ export function useProviderManagement() {
     showAddProviderTypeDialog.value = true
   }
 
-  const selectProviderType = (type: 'openai' | 'anthropic' | 'google' | 'custom') => {
+  const selectProviderType = (type: 'openai' | 'openai-responses' | 'anthropic' | 'google' | 'custom') => {
     showAddProviderTypeDialog.value = false
     selectedProviderType.value = type
     

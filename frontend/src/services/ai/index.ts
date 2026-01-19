@@ -1,5 +1,6 @@
 export { BaseProvider } from './providers/BaseProvider'
 export { OpenAIProvider } from './providers/OpenAIProvider'
+export { OpenAIResponsesProvider } from './providers/OpenAIResponsesProvider'
 export { AnthropicProvider } from './providers/AnthropicProvider'
 export { GoogleProvider } from './providers/GoogleProvider'
 

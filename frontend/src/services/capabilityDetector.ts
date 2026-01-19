@@ -266,6 +266,7 @@ export class CapabilityDetector {
     
     switch (apiType) {
       case 'openai':
+      case 'openai-responses':
         return await this.testOpenAIThinking(provider, modelId, preferStream, abortController)
       case 'google':
         return await this.testGeminiThinking(provider, modelId, preferStream, abortController)
@@ -532,6 +533,7 @@ export class CapabilityDetector {
     
     switch (apiType) {
       case 'openai':
+      case 'openai-responses':
         return this.detectOpenAIThinking(response)
       case 'google':
         return responseText.includes('思考') || responseText.includes('分析') || responseText.includes('reasoning') || 
@@ -635,7 +637,7 @@ export class CapabilityDetector {
       systemMessage: true
     }
 
-    if (apiType === 'openai') {
+    if (apiType === 'openai' || apiType === 'openai-responses') {
       return {
         reasoning: false,
         reasoningType: null,
@@ -693,6 +695,8 @@ export class CapabilityDetector {
       }
       
       let apiUrl = provider.baseUrl.trim()
+      apiUrl = apiUrl.replace(/\/responses\/?$/, '')
+      apiUrl = apiUrl.replace(/\/chat\/completions\/?$/, '')
       if (apiUrl.includes('/chat/completions')) {
         // 已经是完整URL，直接使用
       } else if (apiUrl.includes('/v1')) {
