@@ -216,10 +216,6 @@ export class ModelFetcher {
     
     let apiUrl = baseUrl.trim()
     
-    if (apiUrl.includes('/v1/')) {
-      apiUrl = apiUrl.replace(/\/v1\/(chat\/completions|responses)(\/.*)?$/i, '/v1')
-    }
-    
     if (apiUrl.endsWith('/models') || apiUrl.includes('/models?') || apiUrl.includes('/models/')) {
       return apiUrl
     } else if (apiUrl.includes('/v1')) {
