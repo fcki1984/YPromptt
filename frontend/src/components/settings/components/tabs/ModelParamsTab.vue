@@ -130,7 +130,7 @@
         <p class="text-xs text-gray-500">{{ getParamDescription('topP') }}</p>
       </div>
 
-      <!-- Reasoning Effort (OpenAI Responses only) -->
+      <!-- Reasoning Effort (OpenAI Chat/Responses only) -->
       <div v-if="isParamSupported('reasoningEffort')" class="space-y-2">
         <div class="flex items-center justify-between">
           <label class="text-sm font-medium text-gray-700">
@@ -246,7 +246,7 @@
           <ul class="text-xs text-gray-600 space-y-2">
             <li v-if="currentApiType === 'openai'" class="flex items-start">
               <span class="text-green-600 mr-2">•</span>
-              <span><strong>OpenAI</strong> 支持: Temperature, Max Tokens, Top P, Frequency Penalty, Presence Penalty</span>
+              <span><strong>OpenAI</strong> 支持: Temperature, Max Tokens, Top P, Frequency Penalty, Presence Penalty, Reasoning Effort</span>
             </li>
             <li v-else-if="currentApiType === 'openai-responses'" class="flex items-start">
               <span class="text-emerald-600 mr-2">•</span>

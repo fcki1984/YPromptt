@@ -26,6 +26,7 @@ export function useModelParams() {
     if (apiType === 'openai' || apiType === 'custom') {
       defaults.frequencyPenalty = 0    // 不惩罚词频（提示词生成需要重复关键词）
       defaults.presencePenalty = 0     // 不强制多样性
+      defaults.reasoningEffort = 'medium'
     } else if (apiType === 'openai-responses') {
       defaults.reasoningEffort = 'medium'
     } else if (apiType === 'anthropic' || apiType === 'google') {
@@ -116,7 +117,7 @@ export function useModelParams() {
         return apiType === 'openai'
 
       case 'reasoningEffort':
-        return apiType === 'openai-responses'
+        return apiType === 'openai' || apiType === 'openai-responses'
       
       case 'topK':
         return apiType === 'anthropic' || apiType === 'google'
@@ -173,7 +174,7 @@ export function useModelParams() {
       topP: '核采样参数，控制考虑的词汇范围',
       frequencyPenalty: '降低重复词汇的频率（OpenAI 专用）',
       presencePenalty: '鼓励模型谈论新话题（OpenAI 专用）',
-      reasoningEffort: '控制模型推理强度（OpenAI Responses 专用）',
+      reasoningEffort: '控制模型推理强度（OpenAI Chat/Responses 专用）',
       topK: '只考虑概率最高的 K 个词汇（Claude/Gemini）'
     }
     return descriptions[paramName] || ''
