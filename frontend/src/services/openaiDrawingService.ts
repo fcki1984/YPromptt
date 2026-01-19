@@ -293,9 +293,26 @@ export class OpenAIDrawingService {
 
   private buildImagesUrl() {
     const base = this.baseUrl.trim().replace(/\/+$/, '')
+    if (base.includes('/images/generations')) {
+      return base
+    }
     if (base.includes('/images')) {
       return base
     }
+
+    const normalizedBase = base
+      .replace(/\/chat\/completions$/, '')
+      .replace(/\/responses$/, '')
+      .replace(/\/models$/, '')
+      .replace(/\/+$/, '')
+
+    if (normalizedBase !== base) {
+      if (normalizedBase.includes('/v1')) {
+        return `${normalizedBase}/images/generations`
+      }
+      return `${normalizedBase}/v1/images/generations`
+    }
+
     if (base.includes('/v1')) {
       return `${base}/images/generations`
     }
@@ -307,6 +324,23 @@ export class OpenAIDrawingService {
     if (base.includes('/chat/completions')) {
       return base
     }
+    if (base.includes('/responses')) {
+      return base
+    }
+
+    const normalizedBase = base
+      .replace(/\/images\/generations$/, '')
+      .replace(/\/images$/, '')
+      .replace(/\/models$/, '')
+      .replace(/\/+$/, '')
+
+    if (normalizedBase !== base) {
+      if (normalizedBase.includes('/v1')) {
+        return `${normalizedBase}/chat/completions`
+      }
+      return `${normalizedBase}/v1/chat/completions`
+    }
+
     if (base.includes('/v1')) {
       return `${base}/chat/completions`
     }
