@@ -8,7 +8,7 @@ export function useDrawingProviderManagement() {
   const showAddProviderTypeDialog = ref(false)
   const showAddProvider = ref(false)
   const editingProvider: Ref<DrawingProvider | null> = ref(null)
-  const selectedProviderType = ref<'google' | 'custom'>('google')
+  const selectedProviderType = ref<'google' | 'openai' | 'custom'>('google')
 
   const newProvider = ref({
     name: '',
@@ -16,7 +16,7 @@ export function useDrawingProviderManagement() {
     apiKey: ''
   })
 
-  const getProviderTemplate = (type: 'google' | 'custom'): { name: string, baseURL: string, models: DrawingModel[] } => {
+  const getProviderTemplate = (type: 'google' | 'openai' | 'custom'): { name: string, baseURL: string, models: DrawingModel[] } => {
     if (type === 'google') {
       return {
         name: 'Gemini',
@@ -24,6 +24,15 @@ export function useDrawingProviderManagement() {
         models: [
           { id: 'gemini-3-pro-image-preview', name: 'gemini-3-pro-image-preview', supportsImage: true, apiType: 'google' },
           { id: 'gemini-3-flash-preview', name: 'gemini-3-flash-preview', supportsImage: false, apiType: 'google' },
+        ]
+      }
+    }
+    if (type === 'openai') {
+      return {
+        name: 'OpenAI Compatible',
+        baseURL: 'https://api.openai.com/v1',
+        models: [
+          { id: 'gemini-3-pro-image-preview', name: 'gemini-3-pro-image-preview', supportsImage: true, apiType: 'openai' }
         ]
       }
     } else {
@@ -39,10 +48,13 @@ export function useDrawingProviderManagement() {
     if (type === 'google') {
       return 'https://generativelanguage.googleapis.com/v1beta'
     }
+    if (type === 'openai') {
+      return 'https://api.openai.com/v1'
+    }
     return 'https://api.example.com/v1'
   }
 
-  const selectProviderType = (type: 'google' | 'custom') => {
+  const selectProviderType = (type: 'google' | 'openai' | 'custom') => {
     showAddProviderTypeDialog.value = false
     selectedProviderType.value = type
 
@@ -60,7 +72,7 @@ export function useDrawingProviderManagement() {
 
   const editProvider = (provider: DrawingProvider) => {
     editingProvider.value = provider
-    selectedProviderType.value = 'google'  // Gemini API
+    selectedProviderType.value = provider.type || 'google'
     newProvider.value = {
       name: provider.name,
       baseURL: provider.baseURL || '',
@@ -82,7 +94,8 @@ export function useDrawingProviderManagement() {
         drawingStore.updateProvider(editingProvider.value.id, {
           name: newProvider.value.name,
           apiKey: newProvider.value.apiKey,
-          baseURL: newProvider.value.baseURL
+          baseURL: newProvider.value.baseURL,
+          type: selectedProviderType.value
         })
         editingProvider.value = null
       } else {
@@ -93,6 +106,7 @@ export function useDrawingProviderManagement() {
         drawingStore.addProvider({
           id,
           name: newProvider.value.name,
+          type: selectedProviderType.value,
           apiKey: newProvider.value.apiKey,
           baseURL: newProvider.value.baseURL || template.baseURL,
           models: template.models

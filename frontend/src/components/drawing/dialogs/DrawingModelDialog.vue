@@ -165,7 +165,7 @@ defineEmits<{
 
 const apiTypeLabels: Record<string, string> = {
   google: 'Gemini 兼容',
-  openai: 'OpenAI',
+  openai: 'OpenAI 兼容',
   anthropic: 'Anthropic Claude',
   custom: '自定义 API'
 }
