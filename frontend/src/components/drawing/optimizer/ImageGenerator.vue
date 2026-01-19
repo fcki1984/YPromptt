@@ -111,7 +111,7 @@ import { ref, computed, watch } from 'vue'
 import { Image, Download, Sparkles, AlertTriangle, Layers } from 'lucide-vue-next'
 import { AspectRatio, ImageResolution, UploadedImage } from './types'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { GeminiDrawingService } from '@/services/geminiDrawingService'
+import { getDrawingService } from '@/services/drawingServiceFactory'
 
 const drawingStore = useDrawingStore()
 
@@ -169,7 +169,8 @@ const handleGenerate = async () => {
   generating.value = true
   error.value = null
   try {
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const model = drawingStore.getCurrentModel()
+    const service = getDrawingService(provider, model)
 
     // Build message parts with reference images + prompt
     const parts: Array<{
@@ -202,7 +203,7 @@ const handleGenerate = async () => {
       responseModalities: ['TEXT', 'IMAGE'] as Array<'TEXT' | 'IMAGE'>
     }
 
-    // Generate image using GeminiDrawingService
+    // Generate image using drawing service
     const response = await service.generateContent(
       currentModel.value,
       [{
@@ -217,25 +218,18 @@ const handleGenerate = async () => {
       false  // not silent
     )
 
-    // Extract image data from response
-    const candidate = response.candidates?.[0]
-    if (candidate?.content?.parts) {
-      for (const part of candidate.content.parts) {
-        if (part.inlineData && part.inlineData.data) {
-          const base64 = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
-          generatedImage.value = base64
-          return
-        }
-      }
+    const images = service.extractImages(response, props.finalPrompt, imageGenConfig)
+    if (images.length > 0) {
+      generatedImage.value = `data:${images[0].mimeType};base64,${images[0].imageData}`
+      return
     }
 
-    // If no image found, check for text response
-    const textParts = candidate?.content?.parts?.filter(p => p.text).map(p => p.text).join('')
-    if (textParts) {
-      throw new Error(`模型返回文本而非图片: ${textParts.substring(0, 200)}...`)
+    const textOutput = service.extractText(response)
+    if (textOutput) {
+      throw new Error(`模型返回文本而非图片: ${textOutput.substring(0, 200)}...`)
     }
 
-    throw new Error("响应中未找到图片数据")
+    throw new Error('响应中未找到图片数据')
   } catch (err: any) {
     console.error("图片生成失败:", err)
     const errMsg = err.message || "图片生成失败"

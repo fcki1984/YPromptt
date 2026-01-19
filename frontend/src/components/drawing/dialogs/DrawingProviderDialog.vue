@@ -87,7 +87,7 @@
 <script setup lang="ts">
 defineProps<{
   editing: boolean
-  providerType: 'google' | 'custom'
+  providerType: 'google' | 'openai' | 'custom'
   name: string
   baseUrl: string
   apiKey: string
