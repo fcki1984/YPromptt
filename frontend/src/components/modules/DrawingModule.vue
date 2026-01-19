@@ -170,7 +170,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Settings, AlertCircle, X } from 'lucide-vue-next'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { GeminiDrawingService } from '@/services/geminiDrawingService'
+import { getDrawingService } from '@/services/drawingServiceFactory'
 import { mapResolutionToStandard } from '@/utils/resolutionMapper'
 import DrawingChat from '@/components/drawing/DrawingChat.vue'
 import DrawingResult from '@/components/drawing/DrawingResult.vue'
@@ -343,7 +343,7 @@ const handleSendMessage = async (
     drawingStore.addMessage(userMessage)
 
     // 创建 Gemini 服务实例
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const service = getDrawingService(provider, model)
 
     // 判断是否使用流式输出
     // 简化处理: 图像模型始终使用非流式,只有纯文本模型使用流式
@@ -457,14 +457,15 @@ const handleSendMessage = async (
               return
             }
 
+            const responseText = service.extractText(batchResponse)
+
             // 提取结果
             if (batchResponse.candidates && batchResponse.candidates.length > 0) {
               const apiCandidate = batchResponse.candidates[0]
 
               // 提取文本
-              const text = service.extractText(batchResponse)
-              if (text) {
-                candidate.text = text
+              if (responseText) {
+                candidate.text = responseText
               }
 
               // 提取图片和 thoughtSignature
@@ -512,6 +513,14 @@ const handleSendMessage = async (
               }
               if (batchResponse.usageMetadata) {
                 candidate.usageMetadata = JSON.parse(JSON.stringify(batchResponse.usageMetadata))
+              }
+            }
+
+            if (!candidate.imageData) {
+              const images = service.extractImages(batchResponse, responseText || '图片生成', drawingStore.generationConfig)
+              if (images.length > 0) {
+                candidate.imageData = images[0].imageData
+                candidate.mimeType = images[0].mimeType
               }
             }
 
@@ -575,27 +584,25 @@ const handleSendMessage = async (
 
       // 单次生成的后续处理
       if (batchCount === 1) {
+        const generatedImages = service.extractImages(
+          response,
+          text || '图片编辑',
+          drawingStore.generationConfig
+        )
+        generatedImages.forEach(image => {
+          if (drawingStore.enableCustomResolution && mappedResolution) {
+            image.customResolution = {
+              width: drawingStore.customResolution.width,
+              height: drawingStore.customResolution.height,
+              mappedStandard: mappedResolution
+            }
+          }
+          drawingStore.addGeneratedImage(image)
+        })
+
         // 提取完整的模型响应（包括 thoughtSignature）
         if (response.candidates && response.candidates.length > 0) {
           const candidate = response.candidates[0]
-
-          // 提取图片添加到图片库
-          const generatedImages = service.extractImages(
-            response,
-            text || '图片编辑',
-            drawingStore.generationConfig
-          )
-          generatedImages.forEach(image => {
-            // 添加自定义分辨率元数据
-            if (drawingStore.enableCustomResolution && mappedResolution) {
-              image.customResolution = {
-                width: drawingStore.customResolution.width,
-                height: drawingStore.customResolution.height,
-                mappedStandard: mappedResolution
-              }
-            }
-            drawingStore.addGeneratedImage(image)
-          })
 
           // 使用 API 返回的完整 parts（包含 thoughtSignature）
           if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
@@ -669,10 +676,11 @@ const handleSendMessage = async (
             }
           }
 
-          // 如果没有生成图片，显示提示
-          if (generatedImages.length === 0 && !service.extractText(response)) {
-            alert('未能生成内容，请尝试调整提示词或参数')
-          }
+        }
+
+        // 如果没有生成图片，显示提示
+        if (generatedImages.length === 0 && !service.extractText(response)) {
+          alert('未能生成内容，请尝试调整提示词或参数')
         }
       }  // end if (batchCount === 1)
     }  // end else (非流式输出)
@@ -738,7 +746,7 @@ const handleRegenerate = async () => {
     const systemPrompt = drawingStore.systemPrompt?.trim() || ''
 
     // 创建 Gemini 服务实例
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const service = getDrawingService(provider, model)
 
     // 判断是否使用流式输出
     const useStreaming = !model.supportsImage
@@ -861,12 +869,13 @@ const handleRegenerate = async () => {
               return
             }
 
+            const responseText = service.extractText(batchResponse)
+
             if (batchResponse.candidates && batchResponse.candidates.length > 0) {
               const apiCandidate = batchResponse.candidates[0]
 
-              const text = service.extractText(batchResponse)
-              if (text) {
-                candidate.text = text
+              if (responseText) {
+                candidate.text = responseText
               }
 
               if (apiCandidate.content && apiCandidate.content.parts) {
@@ -888,6 +897,14 @@ const handleRegenerate = async () => {
                   height: drawingStore.customResolution.height,
                   mappedStandard: batchMappedResolution
                 }
+              }
+            }
+
+            if (!candidate.imageData) {
+              const images = service.extractImages(batchResponse, responseText || '图片生成', drawingStore.generationConfig)
+              if (images.length > 0) {
+                candidate.imageData = images[0].imageData
+                candidate.mimeType = images[0].mimeType
               }
             }
 

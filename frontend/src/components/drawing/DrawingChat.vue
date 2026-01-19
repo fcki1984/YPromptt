@@ -614,6 +614,7 @@ import DOMPurify from 'dompurify'
 import { useDrawingStore } from '@/stores/drawingStore'
 import type { DrawingMessage } from '@/stores/drawingStore'
 import { fileToBase64, getFileMimeType } from '@/services/geminiDrawingService'
+import { getDrawingService } from '@/services/drawingServiceFactory'
 import SystemPromptModal from '@/components/modules/optimize/components/SystemPromptModal.vue'
 
 // Props
@@ -1079,9 +1080,7 @@ const translateText = async (targetLanguage: 'en' | 'zh') => {
       timestamp: Date.now()
     }]
 
-    // 使用 Gemini 服务进行翻译
-    const { GeminiDrawingService } = await import('@/services/geminiDrawingService')
-    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
+    const service = getDrawingService(provider, model)
 
     // 使用非流式API获取翻译结果（静默模式，不输出日志）
     const response = await service.generateContent(
@@ -1098,22 +1097,11 @@ const translateText = async (targetLanguage: 'en' | 'zh') => {
       undefined
     )
 
-    // 提取翻译结果
-    if (response.candidates && response.candidates.length > 0) {
-      const candidate = response.candidates[0]
-      if (candidate.content && candidate.content.parts) {
-        const translatedText = candidate.content.parts
-          .filter(p => p.text)
-          .map(p => p.text)
-          .join('')
-          .trim()
-
-        if (translatedText) {
-          inputText.value = translatedText
-        } else {
-          alert('翻译失败：未获得有效结果')
-        }
-      }
+    const translatedText = service.extractText(response).trim()
+    if (translatedText) {
+      inputText.value = translatedText
+    } else {
+      alert('翻译失败：未获得有效结果')
     }
   } catch (error: any) {
     console.error('翻译失败:', error)
