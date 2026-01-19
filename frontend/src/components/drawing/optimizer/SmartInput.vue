@@ -280,7 +280,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { Upload, X, ScanEye, Sparkles, AlertCircle, Microscope, Wand2, Info, ChevronRight, Maximize2, Trash2, Brain, Lightbulb } from 'lucide-vue-next'
 import { DiagnosisResult, DualStructureResult, OmniPromptStructure, UploadedImage, LogicModel } from './types'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { createDrawingService } from '@/services/drawingServiceFactory'
+import { GeminiDrawingService } from '@/services/geminiDrawingService'
 
 const drawingStore = useDrawingStore()
 
@@ -352,7 +352,7 @@ const getService = () => {
     throw new Error('提供商不存在')
   }
 
-  return createDrawingService(provider, getCurrentModel() || undefined)
+  return new GeminiDrawingService(provider.apiKey, provider.baseURL)
 }
 
 const getCurrentModel = () => {

@@ -111,7 +111,7 @@ import { ref, computed, watch } from 'vue'
 import { Image, Download, Sparkles, AlertTriangle, Layers } from 'lucide-vue-next'
 import { AspectRatio, ImageResolution, UploadedImage } from './types'
 import { useDrawingStore } from '@/stores/drawingStore'
-import { createDrawingService } from '@/services/drawingServiceFactory'
+import { GeminiDrawingService } from '@/services/geminiDrawingService'
 
 const drawingStore = useDrawingStore()
 
@@ -166,16 +166,10 @@ const handleGenerate = async () => {
     return
   }
 
-  const model = drawingStore.getCurrentModel()
-  if (!model) {
-    error.value = "请先在顶部选择AI提供商和模型"
-    return
-  }
-
   generating.value = true
   error.value = null
   try {
-    const service = createDrawingService(provider, model)
+    const service = new GeminiDrawingService(provider.apiKey, provider.baseURL)
 
     // Build message parts with reference images + prompt
     const parts: Array<{
@@ -208,7 +202,7 @@ const handleGenerate = async () => {
       responseModalities: ['TEXT', 'IMAGE'] as Array<'TEXT' | 'IMAGE'>
     }
 
-    // Generate image using selected drawing service
+    // Generate image using GeminiDrawingService
     const response = await service.generateContent(
       currentModel.value,
       [{
