@@ -184,6 +184,24 @@
         <p class="text-xs text-gray-500">{{ getParamDescription('presencePenalty') }}</p>
       </div>
 
+      <!-- Reasoning Effort (OpenAI only) -->
+      <div v-if="isParamSupported('reasoningEffort')" class="space-y-2">
+        <label class="text-sm font-medium text-gray-700">
+          {{ getParamLabel('reasoningEffort') }}
+        </label>
+        <select
+          v-model="params.reasoningEffort"
+          @change="handleReasoningEffortChange"
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">自动</option>
+          <option value="low">低 (low)</option>
+          <option value="medium">中 (medium)</option>
+          <option value="high">高 (high)</option>
+        </select>
+        <p class="text-xs text-gray-500">{{ getParamDescription('reasoningEffort') }}</p>
+      </div>
+
       <!-- Top K (Claude/Gemini only) -->
       <div v-if="isParamSupported('topK')" class="space-y-2">
         <div class="flex items-center justify-between">
@@ -225,7 +243,7 @@
           <ul class="text-xs text-gray-600 space-y-2">
             <li v-if="currentApiType === 'openai'" class="flex items-start">
               <span class="text-green-600 mr-2">•</span>
-              <span><strong>OpenAI</strong> 支持: Temperature, Max Tokens, Top P, Frequency Penalty, Presence Penalty</span>
+              <span><strong>OpenAI</strong> 支持: Temperature, Max Tokens, Top P, Frequency Penalty, Presence Penalty, Reasoning Effort</span>
             </li>
             <li v-else-if="currentApiType === 'anthropic'" class="flex items-start">
               <span class="text-purple-600 mr-2">•</span>
@@ -278,6 +296,17 @@ const handleParamChange = (paramName: keyof ModelParams, event: Event) => {
   updateCurrentModelParams({
     [paramName]: value
   })
+}
+
+const handleReasoningEffortChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const value = target.value as ModelParams['reasoningEffort'] | ''
+  
+  updateCurrentModelParams({
+    reasoningEffort: value || undefined
+  })
+
+  params.value.reasoningEffort = value || undefined
 }
 
 const handleReset = () => {

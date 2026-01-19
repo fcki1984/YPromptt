@@ -26,6 +26,7 @@ export function useModelParams() {
     if (apiType === 'openai' || apiType === 'custom') {
       defaults.frequencyPenalty = 0    // 不惩罚词频（提示词生成需要重复关键词）
       defaults.presencePenalty = 0     // 不强制多样性
+      defaults.reasoningEffort = undefined
     } else if (apiType === 'anthropic' || apiType === 'google') {
       defaults.topK = 0      // 0 表示不限制（Claude/Gemini 推荐）
     }
@@ -111,7 +112,8 @@ export function useModelParams() {
       
       case 'frequencyPenalty':
       case 'presencePenalty':
-        return apiType === 'openai'
+      case 'reasoningEffort':
+        return apiType === 'openai' || apiType === 'custom'
       
       case 'topK':
         return apiType === 'anthropic' || apiType === 'google'
@@ -133,6 +135,8 @@ export function useModelParams() {
       case 'frequencyPenalty':
       case 'presencePenalty':
         return { min: -2, max: 2, step: 0.1 }
+      case 'reasoningEffort':
+        return { min: 0, max: 0, step: 1 }
       case 'topK':
         return { min: 1, max: 100, step: 1 }
       default:
@@ -151,6 +155,7 @@ export function useModelParams() {
       topP: 'Top P',
       frequencyPenalty: 'Frequency Penalty',
       presencePenalty: 'Presence Penalty',
+      reasoningEffort: 'Reasoning Effort',
       topK: 'Top K'
     }
     return labels[paramName] || paramName
@@ -167,6 +172,7 @@ export function useModelParams() {
       topP: '核采样参数，控制考虑的词汇范围',
       frequencyPenalty: '降低重复词汇的频率（OpenAI 专用）',
       presencePenalty: '鼓励模型谈论新话题（OpenAI 专用）',
+      reasoningEffort: '设置 OpenAI 推理强度（gpt-5、o-series 推荐使用）',
       topK: '只考虑概率最高的 K 个词汇（Claude/Gemini）'
     }
     return descriptions[paramName] || ''
